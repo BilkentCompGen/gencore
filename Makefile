@@ -82,7 +82,6 @@ reinstall-htslib:
 install-lcptools:
 	@echo "Installing lcptool"
 	cd lcptools && \
-	make && \
 	make install PREFIX=$(CURRENT_DIR)/lcptools
 
 reinstall-lcptools:

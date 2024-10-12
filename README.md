@@ -49,12 +49,12 @@ These cores enable highly accurate comparison of genomes to evaluate distances a
 ### Installation on Unix (Linux & macOS)
 
 First, open your terminal. 
-Then execute the following commands to clone the repository and compile the source code:
+Then execute the following commands to shallow clone the repository and compile the source code:
 
 - **Clone the Repository**:
 
 ```cpp
-git clone https://github.com/akmami/gencore.git
+git clone --depth 1 --recursive https://github.com/BilkentCompGen/gencore.git
 cd gencore
 ```
 
@@ -246,4 +246,4 @@ The weights are assigned based on the sequencing depths of the genomes, allowing
 
 **GenCore** is released under BSD 3-Clause License.
 
-For more details, please visit the [license file](https://github.com/akmami/gencore/blob/main/LICENSE).
+For more details, please visit the [license file](https://github.com/BilkentCompGen/gencore/blob/main/LICENSE).
