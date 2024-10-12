@@ -58,13 +58,13 @@ def save_ete_tree(newick_str, output_file, circular=False):
         ts.show_leaf_name = True
         ts.mode = "c"
         ts.branch_vertical_margin = 5
-        ts.show_scale = False
+        ts.show_scale = True
         tree.render(output_file + "_ete.png", w=1000, units="px", tree_style=ts)
     else:
         ts = TreeStyle()
         ts.show_leaf_name = True
         ts.branch_vertical_margin = 5
-        ts.show_scale = False
+        ts.show_scale = True
         tree.render(output_file + "_ete.png", w=1000, units="px", tree_style=ts)
 
     
@@ -73,11 +73,11 @@ def save_ete_tree(newick_str, output_file, circular=False):
 
 def save_tree(tree, output_file):
     # save plot
-    plt.figure(figsize=(10, 7))
-    Phylo.draw(tree)
-    plt.savefig(output_file + ".png")
-    plt.close()
-    print(f"Tree saved to {output_file}.png")
+    # plt.figure(figsize=(10, 7))
+    # Phylo.draw(tree)
+    # plt.savefig(output_file + ".png")
+    # plt.close()
+    # print(f"Tree saved to {output_file}.png")
 
     # save newick
     with open(output_file + ".newick", "w") as f:
@@ -88,12 +88,23 @@ def save_tree(tree, output_file):
     save_ete_tree(tree.format("newick"), output_file)
 
 
+def read_newick(filename):
+    with open(filename, 'r') as file:
+        newick_str = file.read().strip()
+    tree = Phylo.read(filename, 'newick')
+    return tree
+
 
 def main(input_file, output_file):
-    labels, matrix = read_phy(input_file)
-    tree = construct_upgma_tree(labels, matrix)
-    save_tree(tree, output_file)
+    if input_file.endswith('.phy'):
+        labels, matrix = read_phy(input_file)
+        tree = construct_upgma_tree(labels, matrix)
+    elif input_file.endswith('.newick'):
+        tree = read_newick(input_file)
+    else:
+        raise ValueError("Unsupported file format. Please provide a .phy or .newick file.")
     
+    save_tree(tree, output_file)
 
 
 if __name__ == "__main__":

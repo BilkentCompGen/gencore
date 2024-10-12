@@ -14,7 +14,7 @@ struct pargs {
     bool writeCores;
     std::string prefix;
     size_t threadNumber;
-    size_t lcpLevel;
+    int lcpLevel;
     bool verbose;
 };
 

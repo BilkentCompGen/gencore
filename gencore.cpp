@@ -86,10 +86,11 @@ int main(int argc, char **argv) {
     log(INFO, "Writing distance matrices to files...");
     
     // Write outputs to files
+    std::string program_type = program_arguments.type == SET ? ".set" : ".vec";
     std::fstream dice_out, jaccard_out, distance_out;
-    dice_out.open( program_arguments.prefix + ".dice.phy", std::ios::out );
-    jaccard_out.open( program_arguments.prefix + ".jaccard.phy", std::ios::out );
-    distance_out.open( program_arguments.prefix + ".ns.phy", std::ios::out );
+    dice_out.open( program_arguments.prefix + program_type + ".dice.lvl" + std::to_string(program_arguments.lcpLevel) + ".phy", std::ios::out );
+    jaccard_out.open( program_arguments.prefix + program_type + ".jaccard.lvl" + std::to_string(program_arguments.lcpLevel) + ".phy", std::ios::out );
+    distance_out.open( program_arguments.prefix + program_type + ".ns.lvl" + std::to_string(program_arguments.lcpLevel) + ".phy", std::ios::out );
 
     if ( dice_out.is_open() ) {  
 
