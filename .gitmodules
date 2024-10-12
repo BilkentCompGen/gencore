@@ -3,4 +3,4 @@
 	url = https://github.com/samtools/htslib.git
 [submodule "lcptools"]
 	path = lcptools
-	url = https://github.com/BilkentCompGen/lcptools
+	url = https://github.com/BilkentCompGen/lcptools.git
