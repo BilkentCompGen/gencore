@@ -10,7 +10,7 @@ void timestamp() {
 };
 
 
-void log(enum LogLevel level, const char *format, ...) {
+bool log(enum LogLevel level, const char *format, ...) {
     timestamp();
 
     switch (level) {
@@ -31,4 +31,6 @@ void log(enum LogLevel level, const char *format, ...) {
     va_end(args);
 
     printf("\n");
+
+    return true;
 };

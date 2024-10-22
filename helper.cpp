@@ -40,47 +40,17 @@ void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores) {
 };
 
 
-void generateSignature( std::vector<uint32_t>& hash_values ) {
-    std::sort(hash_values.begin(), hash_values.end());
-};
-
-
-void initializeSetAndCounts( std::vector<uint32_t>& cores, std::vector<uint32_t>& set, std::vector<size_t>& counts ) {
+void generateSignature( struct targs& thread_arguments, const struct pargs& program_arguments ) {
     
-    if( cores.empty() ) {
-        return;
-    }
+    std::sort(thread_arguments.cores.begin(), thread_arguments.cores.end());
 
-    int distinct_cores = 1;
-
-    for( size_t i = 1; i < cores.size(); i++ ) {
-        if( cores[i] != cores[i - 1] ) {
-            distinct_cores++;
+    if ( program_arguments.type == SET ) {
+        size_t size = 1;
+        for( std::vector<uint32_t>::const_iterator it = thread_arguments.cores.begin() + 1; it < thread_arguments.cores.end(); it++ ) {
+            *(it-1) != *it && size++;
         }
-
-        if ( cores[i] < cores[i - 1] ) {
-            log(ERROR, "Given LCP cores should be sorted.");
-            exit(1);
-        }
-    }
-    
-    // pre-allocate memory for efficiency
-    set.reserve( distinct_cores ); 
-    counts.reserve( distinct_cores );
-    
-    set.push_back(cores[0]);
-    size_t count = 1;
-    
-    for (size_t i = 1; i < cores.size(); ++i) {
-        if (cores[i] == cores[i - 1]) {
-            count++;
-        } else {
-            counts.push_back(count);
-            set.push_back(cores[i]);
-            count = 1;
-        }
-    }
-
-    // add the count for the last element
-    counts.push_back(count); 
+        thread_arguments.core_size = size;
+    } else {
+        thread_arguments.core_size = thread_arguments.cores.size();
+    }    
 };

@@ -1,24 +1,61 @@
 #include "fileio.h"
 
 
-void save( const struct targs& arguments, const std::vector<lcp::lps*>& cores ) {
-    std::ofstream out(arguments.outFileName, std::ios::binary);
+void done(  const struct targs& thread_arguments ) {
+    std::ofstream out(thread_arguments.outFileName, std::ios::binary | std::ios::app);
+
     if (!out) {
-        log(ERROR, "Error opening file for writing %s", arguments.inFileName.c_str());
+        log(ERROR, "Error opening file for writing %s", thread_arguments.inFileName.c_str());
         return;
     }
 
-    log(INFO, "Saving cores to file %s", arguments.outFileName.c_str());
+    bool isDone = true;
 
-    size_t core_size = cores.size();
-    size_t genome_size = arguments.size;
+    out.write(reinterpret_cast<const char*>(&isDone), sizeof(isDone));
+    out.write(reinterpret_cast<const char*>(&(thread_arguments.size)), sizeof(thread_arguments.size));
+    
+    out.close();
+};
 
-    out.write(reinterpret_cast<const char*>(&core_size), sizeof(core_size));
-    out.write(reinterpret_cast<const char*>(&genome_size), sizeof(genome_size));
+
+void save( const struct targs& thread_arguments, const lcp::lps* str ) {
+    
+    std::ofstream out(thread_arguments.outFileName, std::ios::binary | std::ios::app);
+
+    if (!out) {
+        log(ERROR, "Error opening file for writing %s", thread_arguments.inFileName.c_str());
+        return;
+    }
+
+    bool isDone = false;
+
+    out.write(reinterpret_cast<const char*>(&isDone), sizeof(isDone));
+    str->write(out);
+
+    out.close();
+};
+
+
+void save( const struct targs& thread_arguments, const std::vector<lcp::lps*>& cores ) {
+    std::ofstream out(thread_arguments.outFileName, std::ios::binary);
+    if (!out) {
+        log(ERROR, "Error opening file for writing %s", thread_arguments.inFileName.c_str());
+        return;
+    }
+
+    log(INFO, "Saving cores to file %s", thread_arguments.outFileName.c_str());
+
+    size_t isDone = false;
 
     for ( std::vector<lcp::lps*>::const_iterator it = cores.begin(); it != cores.end(); it++ ) {
+        out.write(reinterpret_cast<const char*>(&isDone), sizeof(isDone));
         (*it)->write(out);
     }
+
+    isDone = true;
+
+    out.write(reinterpret_cast<const char*>(&isDone), sizeof(isDone));
+    out.write(reinterpret_cast<const char*>(&(thread_arguments.size)), sizeof(thread_arguments.size));
 
     out.close();
 };
@@ -32,20 +69,20 @@ void load( struct targs& thread_arguments, struct pargs& program_arguments, std:
         return;
     }
     
-    size_t core_size, genome_size;
+    bool isDone;
 
-    in.read(reinterpret_cast<char*>(&core_size), sizeof(core_size));
-    in.read(reinterpret_cast<char*>(&genome_size), sizeof(genome_size));
+    in.read(reinterpret_cast<char*>(&isDone), sizeof(isDone));
 
-    cores.reserve(core_size);
-    thread_arguments.size = genome_size;
-
-    for ( size_t i = 0; i < core_size; i++ ) {
+    while( !isDone ) {
         lcp::lps *str = new lcp::lps(in);
         str->deepen(program_arguments.lcpLevel);
 
         cores.push_back(str);
-    }
+
+        in.read(reinterpret_cast<char*>(&isDone), sizeof(isDone));
+    } 
+
+    in.read(reinterpret_cast<char*>(&(thread_arguments.size)), sizeof(thread_arguments.size));
 
     in.close();
 };
@@ -58,18 +95,17 @@ void read_from_file( struct targs& thread_arguments, struct pargs& program_argum
     ss << std::this_thread::get_id();
 
     // log initiation of reading fasta
-    log(INFO, "Thread ID: %s started loading %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
+    program_arguments.verbose && log(INFO, "Thread ID: %s started loading %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
 
     // load lcp cores
     std::vector<lcp::lps*> strs;
     load( thread_arguments, program_arguments, strs );
 
     // log ending of processing fasta
-    log(INFO, "Thread ID: %s ended loading %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
+    program_arguments.verbose && log(INFO, "Thread ID: %s ended loading %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
 
     // get lcp core hashes
-    std::vector<uint32_t> lcp_core_hashes;
-    flatten(strs, lcp_core_hashes);
+    flatten(strs, thread_arguments.cores );
 
     // delete lcp cores
     for ( std::vector<lcp::lps*>::iterator it = strs.begin(); it != strs.end(); it++ ) {
@@ -78,8 +114,7 @@ void read_from_file( struct targs& thread_arguments, struct pargs& program_argum
     strs.clear();
 
     // set lcp cores and counts to arguments
-    generateSignature( lcp_core_hashes );
-    initializeSetAndCounts( lcp_core_hashes, thread_arguments.cores, thread_arguments.counts );
+    generateSignature( thread_arguments, program_arguments );
 };
 
 

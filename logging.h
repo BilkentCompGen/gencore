@@ -14,7 +14,7 @@ enum LogLevel {
 
 
 void timestamp();
-void log(enum LogLevel level, const char *format, ...);
+bool log(enum LogLevel level, const char *format, ...);
 
 
 #endif

@@ -18,7 +18,7 @@ void printUsage() {
     std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -l 4" << std::endl << std::endl;
     std::cout << "  -t [number]     Set number of threads. [Default: 8]" << std::endl;
     std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -t 2" << std::endl << std::endl;
-    std::cout << "  [--set|--vec]   Set program to calculate distances based or set or vector of cores. [Default: vector]" << std::endl;
+    std::cout << "  [--set|--vec]   Set program to calculate distances based or set or vector of cores. [Default: set]" << std::endl;
     std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa --set" << std::endl << std::endl;
     std::cout << "  -w [filenames]  Store cores processed from input files." << std::endl;
     std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -w -f files.txt" << std::endl << std::endl;
@@ -42,7 +42,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
 
     // set program arguments with their default values
     program_arguments.mode = FA;
-    program_arguments.type = VECTOR;
+    program_arguments.type = SET;
     program_arguments.readCores = false;
     program_arguments.writeCores = false;
     program_arguments.prefix = PREFIX;
@@ -429,7 +429,11 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     log(INFO, "LCP level: %d", program_arguments.lcpLevel);
     log(INFO, "Prefix: %s", program_arguments.prefix.c_str());
 
+    if( program_arguments.writeCores ) { 
+        log(INFO, "Program will write cores to files.");
+    }
+
     for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
-        log(INFO, "inFileName: %s, shortName: %s, outFileName: %s", it->inFileName.c_str(), it->shortName.c_str(), it->outFileName.c_str());
+        program_arguments.verbose && log(INFO, "inFileName: %s, shortName: %s, outFileName: %s", it->inFileName.c_str(), it->shortName.c_str(), it->outFileName.c_str());
     }
 };

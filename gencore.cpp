@@ -53,12 +53,10 @@ int main(int argc, char **argv) {
     // Initialize similarity matrices
     double jaccard[numGenomes][numGenomes];
     double dice[numGenomes][numGenomes];
-    double distance[numGenomes][numGenomes];
     
     for (size_t i = 0; i < numGenomes; i++ ) {
         jaccard[i][i] = 1;
         dice[i][i] = 1;
-        distance[i][i] = 1;
     }
 
     // Compute similarity scores
@@ -69,17 +67,14 @@ int main(int argc, char **argv) {
             calculateIntersectionAndUnionSizes( *it1, *it2, program_arguments, interSize, unionSize );
 
             double jaccard_similarity = calculateJaccardSimilarity( interSize, unionSize );
-            double dice_similarity = calculateDiceSimilarity( interSize, *it1, *it2, program_arguments );
-            double distance_similarity = calculateNormalizedVectorSimilarity( *it1, *it2 );
+            double dice_similarity = calculateDiceSimilarity( interSize, *it1, *it2 );
 
             dice[it1 - thread_arguments.begin()][it2 - thread_arguments.begin()] = dice_similarity;
             jaccard[it1 - thread_arguments.begin()][it2 - thread_arguments.begin()] = jaccard_similarity;
-            distance[it1 - thread_arguments.begin()][it2 - thread_arguments.begin()] = distance_similarity;
 
             // set values to transposed locations
             dice[it2 - thread_arguments.begin()][it1 - thread_arguments.begin()] = dice_similarity;
             jaccard[it2 - thread_arguments.begin()][it1 - thread_arguments.begin()] = jaccard_similarity;
-            distance[it2 - thread_arguments.begin()][it1 - thread_arguments.begin()] = distance_similarity;
         }
     }
 
@@ -90,7 +85,6 @@ int main(int argc, char **argv) {
     std::fstream dice_out, jaccard_out, distance_out;
     dice_out.open( program_arguments.prefix + program_type + ".dice.lvl" + std::to_string(program_arguments.lcpLevel) + ".phy", std::ios::out );
     jaccard_out.open( program_arguments.prefix + program_type + ".jaccard.lvl" + std::to_string(program_arguments.lcpLevel) + ".phy", std::ios::out );
-    distance_out.open( program_arguments.prefix + program_type + ".ns.lvl" + std::to_string(program_arguments.lcpLevel) + ".phy", std::ios::out );
 
     if ( dice_out.is_open() ) {  
 
@@ -124,23 +118,6 @@ int main(int argc, char **argv) {
             jaccard_out << std::endl;
         }
         jaccard_out.close();
-    }
-
-    if ( distance_out.is_open() ) {  
-
-        distance_out << numGenomes << std::endl;
-        distance_out << std::setprecision(15);
-
-        for(size_t i = 0; i < numGenomes; i++ ) {
-            
-            distance_out << thread_arguments[i].shortName;  
-
-            for(size_t j = 0; j < numGenomes; j++ ) {
-                distance_out << std::fixed << std::setprecision(15) << ' ' << 1-distance[i][j];
-            }
-            distance_out << std::endl;
-        }
-        distance_out.close();
     }
 
     return 0;

@@ -6,6 +6,7 @@
 #include <vector>
 #include <algorithm>
 #include "logging.h"
+#include "args.h"
 #include "lps.h"
 
 #ifndef BUFFERSIZE
@@ -48,27 +49,11 @@ void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores);
  * using the standard library's `std::sort` algorithm. The resulting vector 
  * will contain the same values arranged in ascending order.
  * 
- * @param hash_values A reference to a vector of 32-bit unsigned integers 
- *        representing hash values. The vector is sorted in-place.
+ * @param thread_arguments A reference to a vector of `targs` structures 
+ *        representing the arguments specific to each thread which is needed for cores.
+ * @param program_arguments A constant reference to a `pargs` structure 
+ *        representing the global program arguments.
  */
-void generateSignature( std::vector<uint32_t>& hash_values );
-
-/**
- * @brief Populates vectors with unique LCP cores and their counts from a sorted vector of LCP cores.
- *
- * This function analyzes a sorted vector of LCP cores, identifying each unique core and
- * counting the number of occurrences of that core within the vector. The unique cores
- * and their counts are then stored in separate vectors. This operation is useful for
- * summarizing the distribution of LCP cores within a dataset, particularly in genomic
- * data analysis where understanding the frequency of certain sequences or patterns can
- * be critical.
- *
- * @param cores The input vector containing sorted LCP cores to be analyzed.
- * @param set An output vector that will contain all LCP cores once
- *                         identified in the input vector.
- * @param counts An output vector that will contain the counts of each unique
- *                        LCP core corresponding to the unique cores in `set`.
- */
-void initializeSetAndCounts( std::vector<uint32_t>& lcp_cores, std::vector<uint32_t>& set, std::vector<size_t>& counts );
+void generateSignature( struct targs& thread_arguments, const struct pargs& program_arguments );
 
 #endif

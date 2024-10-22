@@ -14,18 +14,40 @@
 
 
 /**
+ * @brief Marks the thread's processing as done by writing a boolean flag and size to the specified output file.
+ * 
+ * This function writes a `true` value to indicate the completion of the thread's work,
+ * followed by the size of the data processed, to a binary file.
+ *
+ * @param thread_arguments A struct containing the output file name and size of data processed.
+ */
+void done( const struct targs& thread_arguments );
+
+
+/**
+ * @brief Saves the current state of the lcp::lps object to the specified output file.
+ * 
+ * This function writes a `false` value (indicating work is not complete),
+ * followed by the serialized data of the lps object, to a binary file.
+ *
+ * @param thread_arguments A struct containing the output file name and other thread-related parameters.
+ * @param str Pointer to the lcp::lps object that is being saved.
+ */
+void save( const struct targs& thread_arguments, const lcp::lps* str );
+
+/**
  * @brief Saves the LCP cores to a binary file.
  * 
  * This function writes the contents of the provided LCP cores to a binary file specified 
- * by the `outFileName` in the `arguments` structure. It also records metadata about the 
+ * by the `outFileName` in the `thread_arguments` structure. It also records metadata about the 
  * number of cores and the total size of the genome being processed.
  * 
- * @param arguments A constant reference to the `targs` structure, which contains file output 
+ * @param thread_arguments A constant reference to the `targs` structure, which contains file output 
  *        information (such as the output file name) and the total size of the processed genome.
  * @param cores A constant reference to a vector of pointers to `lcp::lps` objects, representing
  *        the LCP cores that will be saved to the file.
  */
-void save( const struct targs& arguments, const std::vector<lcp::lps*>& cores );
+void save( const struct targs& thread_arguments, const std::vector<lcp::lps*>& cores );
 
 /**
  * @brief Loads LCP cores from a binary file into a vector.

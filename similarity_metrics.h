@@ -51,11 +51,11 @@ void calculateIntersectionAndUnionSizes( const struct targs& argument1, const st
  * of hashed LCP cores from two genomes. This metric provides a measure of similarity
  * in terms of shared genomic features.
  *
- * @param interSize The size of the intersection between the two sets of cores.
+ * @param intersectionSize The size of the intersection between the two sets of cores.
  * @param unionSize The size of the union between the two sets of cores.
  * @return The Jaccard similarity coefficient as a double.
  */
-double calculateJaccardSimilarity( size_t interSize, size_t unionSize );
+double calculateJaccardSimilarity( size_t intersectionSize, size_t unionSize );
 
 /**
  * @brief Calculates the Dice similarity between two genomes.
@@ -64,7 +64,7 @@ double calculateJaccardSimilarity( size_t interSize, size_t unionSize );
  * and the sizes of individual core sets from two genomes. This metric is another measure
  * of similarity focusing on shared genomic features.
  *
- * @param interSize The size of the intersection between the two sets of cores.
+ * @param intersectionSize The size of the intersection between the two sets of cores.
  * @param argument1 A constant reference to the `targs` structure representing the first set of LCP cores 
  *        and counts for comparison.
  * @param argument2 A constant reference to the `targs` structure representing the second set of LCP cores 
@@ -73,24 +73,6 @@ double calculateJaccardSimilarity( size_t interSize, size_t unionSize );
  *        including the type of operation (set-based or vector-based).
  * @return The Dice similarity coefficient as a double.
  */
-double calculateDiceSimilarity( const size_t interSize, const struct targs& argument1, const struct targs& argument2, const struct pargs& program_arguments );
-
-/**
- * @brief Calculates a similarity score between two sets of hashed LCP cores.
- *
- * This function compares two sets of hashed LCP cores, representing genomic sequences
- * analyzed at specified depths, to compute a similarity score. The score is based on
- * the normalized Manhattan distance between the weighted counts of matching LCP cores,
- * adjusted to reflect similarity. This approach considers both the presence and abundance
- * of LCP cores in relation to the analysis depths, offering a nuanced similarity measure
- * suitable for genomic comparisons.
- *
- * @param argument1 A constant reference to the `targs` structure representing the first set of LCP cores 
- *        and counts for comparison.
- * @param argument2 A constant reference to the `targs` structure representing the second set of LCP cores 
- *        and counts for comparison.
- * @return A double representing the similarity score, ranging from 0 (no similarity) to 1 (identical).
- */
-double calculateNormalizedVectorSimilarity(  const struct targs& argument1, const struct targs& argument2 );
+double calculateDiceSimilarity( const size_t intersectionSize, const struct targs& argument1, const struct targs& argument2 );
 
 #endif

@@ -24,7 +24,7 @@ struct targs {
     std::string outFileName;
     std::string shortName;
     std::vector<uint32_t> cores;
-    std::vector<size_t> counts;
+    size_t core_size;
     size_t size;
 };
 

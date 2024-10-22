@@ -49,6 +49,16 @@ def construct_upgma_tree(labels, distance_matrix):
     
     return tree
 
+def construct_nj_tree(labels, distance_matrix):
+    dm = DistanceMatrix(labels, distance_matrix)
+    constructor = DistanceTreeConstructor()
+    tree = constructor.nj(dm)
+    
+    # remove inner labels if needed
+    remove_inner_labels(tree)
+    
+    return tree
+
 
 def save_ete_tree(newick_str, output_file, circular=False):
     tree = Tree(newick_str, format=1, quoted_node_names=True)
@@ -110,7 +120,8 @@ def main(input_file, output_file):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Construct a phylogenetic tree using UPGMA and save it as an image and Newick file.")
     parser.add_argument("input_file", help="Path to the input file containing the distances (phy format)")
-    parser.add_argument("output_file", help="Path to the output file (without extension)")
     args = parser.parse_args()
 
-    main(args.input_file, args.output_file)
+    output_file_base = os.path.splitext(args.input_file)[0]
+
+    main(args.input_file, output_file_base)

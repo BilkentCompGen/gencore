@@ -134,5 +134,5 @@ void read_fastq( struct targs& thread_arguments, const struct pargs program_argu
         }
     }
 
-    generateSignature( thread_arguments.cores );
+    generateSignature( thread_arguments, program_arguments );
 };

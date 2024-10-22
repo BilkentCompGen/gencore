@@ -36,18 +36,16 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
     ss << std::this_thread::get_id();
 
     // log initiation of reading fasta
-    log(INFO, "Thread ID: %s started processing %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
+    program_arguments.verbose && log(INFO, "Thread ID: %s started processing %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
 
     // open fasta file
     std::fstream file;
     file.open( thread_arguments.inFileName, std::ios::in );
 
-    std::vector<lcp::lps*> strs;
     thread_arguments.size = 0;
 
     // read file
     if ( file.is_open() ) {  
-        
         
         std::string sequence, id, line;
         sequence.reserve(250000000);
@@ -60,15 +58,17 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
                 if (sequence.size() != 0) {
                 
                     lcp::lps* str = new lcp::lps(sequence);
-                    str->deepen(program_arguments.lcpLevel);
-                    strs.push_back(str);
+                    str->deepen( program_arguments.lcpLevel );
+                    str->get_labels( thread_arguments.cores );
+
+                    if ( program_arguments.writeCores ) {
+                        save( thread_arguments, str );
+                    }
+
+                    delete str;
 
                     // increment processed sequence size
-                    thread_arguments.size += sequence.size();
-
-                    if ( program_arguments.verbose ) {
-                        log(INFO, "Thread ID: %s, Length of the processed sequence: %d", ss.str().c_str(), sequence.size());
-                    }
+                    thread_arguments.size += sequence.size();                    
 
                     // cleanup
                     sequence.clear();
@@ -76,10 +76,6 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
                 
                 // get new chromosome's id
                 id = line.substr(1);
-                
-                if ( program_arguments.verbose ) {
-                    log(INFO, "Thread ID: %s, Processing started for %s", ss.str().c_str(), id.c_str());
-                }
             }
             else if (line[0] != '>'){
                 sequence += line;
@@ -88,16 +84,19 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
 
         // process last chromosome set into sequence string
         if ( sequence.size() != 0 ) {
+
             lcp::lps* str = new lcp::lps(sequence);
-            str->deepen(program_arguments.lcpLevel);
-            strs.push_back(str);
+            str->deepen( program_arguments.lcpLevel );
+            str->get_labels( thread_arguments.cores );
+
+            if ( program_arguments.writeCores ) {
+                save( thread_arguments, str );
+            }
+
+            delete str;
 
             // increment processed sequence size
             thread_arguments.size += sequence.size();
-
-            if ( program_arguments.verbose ) {
-                log(INFO, "Thread ID: %s, Length of the processed sequence: %d", ss.str().c_str(), sequence.size());
-            }
 
             // cleanup
             sequence.clear();
@@ -110,24 +109,13 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
     }
 
     // log ending of processing fasta
-    log(INFO, "Thread ID: %s ended processing %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
+    program_arguments.verbose && log(INFO, "Thread ID: %s ended processing %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
 
-    // write cores to file if user specified to do so
+    // end writing cores to file if user specified to do so
     if ( program_arguments.writeCores ) {
-        save( thread_arguments, strs );
+        done( thread_arguments );
     }
-
-    // get lcp core hashes
-    std::vector<uint32_t> lcp_core_hashes;
-    flatten(strs, lcp_core_hashes);
-
-    // delete lcp cores
-    for ( std::vector<lcp::lps*>::iterator it = strs.begin(); it != strs.end(); it++ ) {
-        delete (*it);
-    }
-    strs.clear();
 
     // set lcp cores and counts to arguments
-    generateSignature( lcp_core_hashes );
-    initializeSetAndCounts( lcp_core_hashes, thread_arguments.cores, thread_arguments.counts );
+    generateSignature( thread_arguments, program_arguments );
 };

@@ -12,4 +12,6 @@ void read_bam( struct targs& arguments, const struct pargs& program_arguments ) 
     }
 
     bam_destroy1(aln);
+
+    program_arguments.verbose && log(INFO, "Successfully tested bam reading functionatly.");
 }
