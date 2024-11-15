@@ -33,8 +33,8 @@ void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores) {
     lcp_cores.reserve(size);
 
     for(std::vector<lcp::lps*>::iterator it_str = strs.begin(); it_str != strs.end(); it_str++) {
-        for ( std::vector<lcp::core*>::iterator it_lcp = (*it_str)->cores->begin(); it_lcp != (*it_str)->cores->end(); it_lcp++ ) {
-            lcp_cores.push_back( (*it_lcp)->label );
+        for ( std::vector<lcp::core>::iterator it_lcp = (*it_str)->cores->begin(); it_lcp != (*it_str)->cores->end(); it_lcp++ ) {
+            lcp_cores.push_back( (it_lcp)->label );
         }
     }
 };
@@ -43,13 +43,31 @@ void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores) {
 void generateSignature( struct targs& thread_arguments, const struct pargs& program_arguments ) {
     
     std::sort(thread_arguments.cores.begin(), thread_arguments.cores.end());
+    
+    size_t count = 1;
+    std::vector<uint32_t>::iterator write_index = thread_arguments.cores.begin(), temp;
+
+    for ( std::vector<uint32_t>::const_iterator it = thread_arguments.cores.begin() + 1; it < thread_arguments.cores.end(); it++ ) {
+        if ( *it == *(it - 1) ) {
+            count++;
+        } else {
+            if ( count >= program_arguments.min_cc && count <= program_arguments.max_cc ) {
+                while ( count-- ) {
+                    *write_index++ = *(it - 1);
+                }
+            }
+            count = 1;
+        }
+    }
+
+    thread_arguments.cores.resize(write_index - thread_arguments.cores.begin());
 
     if ( program_arguments.type == SET ) {
-        size_t size = 1;
+        count = 1;
         for( std::vector<uint32_t>::const_iterator it = thread_arguments.cores.begin() + 1; it < thread_arguments.cores.end(); it++ ) {
-            *(it-1) != *it && size++;
+            *(it-1) != *it && count++;
         }
-        thread_arguments.core_size = size;
+        thread_arguments.core_size = count;
     } else {
         thread_arguments.core_size = thread_arguments.cores.size();
     }    

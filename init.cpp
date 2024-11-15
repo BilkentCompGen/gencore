@@ -49,6 +49,8 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     program_arguments.threadNumber = THREAD_NUMBER;
     program_arguments.lcpLevel = 7;
     program_arguments.verbose = false;
+    program_arguments.min_cc = 1;
+    program_arguments.max_cc = 4294967295;
 
     int index = 1;
     
@@ -188,7 +190,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                     throw std::invalid_argument("Invalid thread number provided.");
                 }
                 program_arguments.threadNumber = std::stoi(argv[index]);            
-            } catch (const std::invalid_argument& e) {
+            } catch (const std::invalid_argument& e ) {
                 log(ERROR, "Invalid thread number provided.");
                 exit(1);
             }
@@ -225,7 +227,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                     throw std::invalid_argument("Invalid LCP level");
                 }
                 program_arguments.lcpLevel = std::stoi(argv[index]);
-            } catch ( const std::invalid_argument& e) {
+            } catch ( const std::invalid_argument& e ) {
                 log(ERROR, "Invalid LCP level provided.");
                 exit(1);
             }
@@ -273,7 +275,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                                 throw std::invalid_argument("Missing output file name.");
                             }
                         }
-                    } catch ( const std::invalid_argument& e) {
+                    } catch ( const std::invalid_argument& e ) {
                         log(ERROR, "Number of input file should match output file names count.");
                         exit(1);
                     }
@@ -292,7 +294,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                             throw std::invalid_argument("Failed to parse output file name.");
                         }
                     }
-                } catch ( const std::invalid_argument& e) {
+                } catch ( const std::invalid_argument& e ) {
                     log(ERROR, "Number of input file should match output file names count.");
                     exit(1);
                 }
@@ -390,7 +392,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                             it->shortName = it->shortName.substr(0, 10);
                         }
                     }
-                } catch ( const std::invalid_argument& e) {
+                } catch ( const std::invalid_argument& e ) {
                     log(ERROR, "Number of short names should match input files' count.");
                     exit(1);
                 }
@@ -399,6 +401,62 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
             // move next argument
             index++;
         }
+        // ------------------------------------------------------------------
+        // Read `min_cc` 
+        // ------------------------------------------------------------------
+        else if( strcmp(argv[index], "--min-cc") == 0 ) {
+            
+            // move next argument, skip `--min-cc`
+            index++;
+            
+            // validate if following next argument exists
+            if ( index >= argc ) {
+                log(ERROR, "Missing value for minimum core count value.");
+                exit(1);
+            }
+
+            // get minimum core count and validate it
+            try {
+                if ( std::stoi(argv[index]) <= 0 ) {
+                    throw std::invalid_argument("Invalid minimum core count value.");
+                }
+                program_arguments.min_cc = std::stoi(argv[index]);
+            } catch ( const std::invalid_argument& e ) {
+                log(ERROR, "Invalid minimum core count provided.");
+                exit(1);
+            }
+
+            // move next argument
+            index++;
+        } 
+        // ------------------------------------------------------------------
+        // Read `max_cc` 
+        // ------------------------------------------------------------------
+        else if( strcmp(argv[index], "--max-cc") == 0 ) {
+            
+            // move next argument, skip `--max-cc`
+            index++;
+            
+            // validate if following next argument exists
+            if ( index >= argc ) {
+                log(ERROR, "Missing value for maximum core count value.");
+                exit(1);
+            }
+
+            // get maximum core count and validate it
+            try {
+                if ( std::stoi(argv[index]) <= 0 ) {
+                    throw std::invalid_argument("Invalid maximum core count value.");
+                }
+                program_arguments.max_cc = std::stoi(argv[index]);
+            } catch ( const std::invalid_argument& e ) {
+                log(ERROR, "Invalid maximum core count provided.");
+                exit(1);
+            }
+
+            // move next argument
+            index++;
+        } 
         // ------------------------------------------------------------------
         // Read `verbose` 
         // ------------------------------------------------------------------
@@ -421,7 +479,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     if( program_arguments.readCores ) { 
         log(INFO, "Reading cores from file.");
     } else {
-        log(INFO, "Program mode: %s", ( program_arguments.mode == FA ? "fa" : ( program_arguments.mode == FQ ? "FQ" : "BAM" ) ) );
+        log(INFO, "Program mode: %s", ( program_arguments.mode == FA ? "FA" : ( program_arguments.mode == FQ ? "FQ" : "BAM" ) ) );
     }
 
     log(INFO, "Distance calculation mode: %s", ( program_arguments.type == SET ? "set" : "vector" ) );

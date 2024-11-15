@@ -45,7 +45,7 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
     thread_arguments.size = 0;
 
     // read file
-    if ( file.is_open() ) {  
+    if ( file.is_open() ) {
         
         std::string sequence, id, line;
         sequence.reserve(250000000);

@@ -134,6 +134,18 @@ The **GenCore** tool can be executed with various command-line options. Below ar
                 Usage: ./gencore fa ref1.fa,ref2.fa -t 2
 ```
 
+- **Minimum Core Count Value**:
+
+```
+--min-cc [num]  Set minimum core count. [Default: 1]
+```
+
+- **Maximum Core Count Value**:
+
+```
+--max-cc [num]  Set maximum core count. [Default: 4294967295]
+```
+
 - **Set Type**:
 
 ```

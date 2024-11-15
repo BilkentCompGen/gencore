@@ -16,6 +16,8 @@ struct pargs {
     size_t threadNumber;
     int lcpLevel;
     bool verbose;
+    uint32_t min_cc;
+    uint32_t max_cc;
 };
 
 

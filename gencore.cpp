@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
     const size_t numGenomes = thread_arguments.size();
 
     // Initialize coefficient arrays
-    lcp::init_coefficients( program_arguments.verbose );
+    lcp::encoding::init( program_arguments.verbose );
 
     // Process files program
     if ( program_arguments.readCores ) {
@@ -33,9 +33,7 @@ int main(int argc, char **argv) {
             read_fastas( thread_arguments, program_arguments );
             break;
         case FQ:
-            for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
-                read_fastq( *it, program_arguments );
-            }
+            read_fastqs( thread_arguments, program_arguments );
             break;
         case BAM:
             for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {

@@ -55,6 +55,11 @@ public:
         gzrewind(gzFile_);
     }
 
+    // Is open
+    bool is_open() const {
+        return gzFile_ != nullptr;
+    }
+
     // Print to compressed file
     int printf(const char* format, ...) {
         char buffer[BUFFERSIZE];

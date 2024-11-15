@@ -9,10 +9,6 @@
 #include "args.h"
 #include "lps.h"
 
-#ifndef BUFFERSIZE
-#define BUFFERSIZE      100000
-#endif
-
 
 /**
  * @brief Generates the reverse complement of a DNA sequence.
