@@ -4,32 +4,19 @@
 void printUsage() {
     std::cout << "Usage: ./gencore [OPTIONS] [FILES]" << std::endl << std::endl;
     std::cout << "Options:" << std::endl;
-    std::cout << "  -r              Read cores from specified files (read mode)" << std::endl;
-    std::cout << "                  Usage: ./gencore -r file1.cores,file2.cores" << std::endl;
-    std::cout << "                  Usage: ./gencore -r -f files.txt" << std::endl << std::endl;
+    std::cout << "  -r [filename]   Read stored cores from specified files (read mode)" << std::endl << std::endl;
     std::cout << "  [fa|fq|bam]     Execute program with specified files in the given format" << std::endl;
-    std::cout << "                  Supported formats: [ fa | fq.gz | bam ]" << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa" << std::endl;
-    std::cout << "                         ./gencore fq reads1.fq.gz,reads2.fq.gz" << std::endl;
-    std::cout << "                         ./gencore bam aln1.bam,aln2.bam" << std::endl << std::endl;
-    std::cout << "  -f [filename]   Execute program with a file that contains input/output file names" << std::endl;
-    std::cout << "                  Usage: ./gencore fa -f files.txt" << std::endl << std::endl;
-    std::cout << "  -l [level]      Set lcp-level. [Default: 4]" << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -l 4" << std::endl << std::endl;
-    std::cout << "  -t [number]     Set number of threads. [Default: 8]" << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -t 2" << std::endl << std::endl;
-    std::cout << "  [--set|--vec]   Set program to calculate distances based or set or vector of cores. [Default: set]" << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa --set" << std::endl << std::endl;
-    std::cout << "  -w [filenames]  Store cores processed from input files." << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -w -f files.txt" << std::endl << std::endl;
-    std::cout << "                         ./gencore fa ref1.fa,ref2.fa -w ref1.cores,ref2.cores" << std::endl;
-    std::cout << "  -p [prefix]     Prefix for the output of the similarity matrices results. [Default: gc]" << std::endl;
-    std::cout << "                  Usage ./gencore fa -i infiles.txt -o outfiles.txt -p primates" << std::endl << std::endl;
-    std::cout << "  -s [shortnames] Set short names of input files. Default is first 10 characters of input file names." << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -s -f files.txt" << std::endl << std::endl;
-    std::cout << "                         ./gencore fa ref1.fa,ref2.fa -s ref1,ref2" << std::endl;
-    std::cout << "  -v              Verbose. [Default: false]" << std::endl;
-    std::cout << "                  Usage: ./gencore fa ref1.fa,ref2.fa -v" << std::endl << std::endl;
+    std::cout << "                  Supported formats: [ fa | fq.gz | bam ]" << std::endl << std::endl;
+    std::cout << "  -f [filename]   Execute program with a file that contains input/output file names" << std::endl << std::endl;
+    std::cout << "  -l [num]        Set lcp-level. [Default: 4]" << std::endl << std::endl;
+    std::cout << "  -t [num]        Set number of threads. [Default: 8]" << std::endl << std::endl;
+    std::cout << "  --min-cc [num]  Set the minimum frequency (core count) for a core. [Default: 1]" << std::endl << std::endl;
+    std::cout << "  --max-cc [num]  Set the maximum frequency (core count) for a core. [Default: 4294967295]" << std::endl << std::endl;
+    std::cout << "  [--set|--vec]   Set program to calculate distances based or set or vector of cores. [Default: set]" << std::endl << std::endl;
+    std::cout << "  -w [filename]   Store cores processed from input files." << std::endl << std::endl;
+    std::cout << "  -p [prefix]     Prefix for the output of the similarity matrices results. [Default: gc]" << std::endl << std::endl;
+    std::cout << "  -s [filename]   Set short names of input files. Default is first 10 characters of input file names." << std::endl << std::endl;
+    std::cout << "  -v              Verbose. [Default: false]" << std::endl << std::endl;
 };
 
 

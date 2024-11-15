@@ -3,18 +3,18 @@
 ## Overview
 
 **GenCore** is a cutting-edge tool designed for the comparison of genomic sequences. 
-Unlike traditional genomic comparison methods that rely on hashing techniques, **GenCore** utilizes Locally Consistent Parsing (LCP), a novel approach that processes strings recursively to identify cores adhering to the LCP rules. 
-These cores enable highly accurate comparison of genomes to evaluate distances and ultimately construct phylogenetic trees.
+Unlike traditional genomic comparison methods that rely on hashing techniques, **GenCore** utilizes [*Locally Consistent Parsing (LCP)*](https://github.com/BilkentCompGen/lcptools), a novel approach that processes strings recursively. 
+This technique allows for the identification of genomic cores that are more representative in sequence composition and structure, leading to highly accurate comparisons when evaluating genetic distances and constructing phylogenetic trees.
 
 ## Features
 
 - **Genome Comparison**: Efficiently compare genomes using distance metrics.
 
-- **Distance Matrix Calculation**: Compute various similarity metrics including Jaccard, Dice, and normalized vector similarity.
+- **Distance Matrix Calculation**: Compute various similarity metrics including Jaccard and Dice.
 
 - **Multi-threading Support**: Leverage multiple threads for faster processing.
 
-- **Flexible Input Formats**: Support for FASTA (`.fa`), FASTQ (gzipped) (`.fq.gz`), and BAM (`.bam`) file formats.
+- **Flexible Input Formats**: Supports FASTA (`.fa`), gzipped FASTQ (`.fq.gz`), and BAM (`.bam`) file formats.
 
 - **Core Management**: Read and write core files for streamlined genomic analysis.
 
@@ -44,26 +44,23 @@ These cores enable highly accurate comparison of genomes to evaluate distances a
 
 3) Navigate to `lcptools/program`.
     
-4) Run `make` in the terminal within the project directory. This compiles the source code and generates an executable named `gencore`.
+4) Run `make install` in the terminal within the project directory. This compiles the source code and generates an executable named `gencore`.
 
 ### Installation on Unix (Linux & macOS)
 
-First, open your terminal. 
-Then execute the following commands to shallow clone the repository and compile the source code:
+Open your terminal and execute the following commands to clone the repository and compile the source code:
 
 - **Clone the Repository**:
 
-```cpp
+```bash
+# Clone the repository
 git clone --depth 1 --recursive https://github.com/BilkentCompGen/gencore.git
 cd gencore
-```
 
-- **Build the Project**: Run the following command to compile the project and its dependencies:
-```
+# Install dependencies and build the project
 make install
+# This installs required dependencies (htslib, lcptools) and compiles the GenCore executable.
 ```
-
-This will compile the `gencore` executable and install `htslib` and `lcptools` as required.
 
 - **Clean Up**: To remove object files and the target binary, run:
 
@@ -77,7 +74,7 @@ These instructions assume that you have `git`, a C++ compiler, and `make` instal
 
 If you need to reinstall `htslib` or `lcptools`, use:
 
-```
+```bash
 make reinstall-htslib
 make reinstall-lcptools
 ```
@@ -95,12 +92,12 @@ The **GenCore** tool can be executed with various command-line options. Below ar
 
 ### Options
 
-- Read Cores:
+- **Read Cores**: Read mode which is reading pre-processed cores from the file.
 
 ```
--r              Read cores from specified files.
-                Usage: ./gencore -r file1.cores,file2.cores
-                or: ./gencore -r -f filenames.txt
+-r [filename]   Read cores from specified files.
+                Usage: ./gencore -r file1.lcpt,file2.lcpt
+                       ./gencore -r -f filenames.txt
 ```
 
 - **File Formats**: Specify the format of the files you are processing:
@@ -123,68 +120,109 @@ The **GenCore** tool can be executed with various command-line options. Below ar
 - **LCP Level**:
 
 ```
--l [level]      Set LCP level. [Default: 4]
+-l [num]        Set LCP level. [Default: 4]
                 Usage: ./gencore fa ref1.fa,ref2.fa -l 4
 ```
 
 - **Number of Threads**:
 
 ```
--t [number]     Set number of threads. [Default: 8]
+-t [num]        Set number of threads. [Default: 8]
                 Usage: ./gencore fa ref1.fa,ref2.fa -t 2
 ```
 
 - **Minimum Core Count Value**:
 
 ```
---min-cc [num]  Set minimum core count. [Default: 1]
+--min-cc [num]  Set the minimum frequency (core count) for a core to be included in the similarity analysis. 
+                Only cores with a frequency greater than or equal to the specified value will be considered. 
+                [Default: 1]
+                Usage: ./gencore fa ref1.fa,ref2.fa --min-cc 2
 ```
 
 - **Maximum Core Count Value**:
 
 ```
---max-cc [num]  Set maximum core count. [Default: 4294967295]
+--max-cc [num]  Set the maximum frequency (core count) for a core to be included in the similarity analysis. 
+                Only cores with a frequency less than or equal to the specified value will be considered. 
+                [Default: 4294967295]
+                Usage: ./gencore fa ref1.fa,ref2.fa --max-cc 100
 ```
 
 - **Set Type**:
 
 ```
-[--set|--vec]   Choose calculation method based on set or vector of cores. [Default: vector]
-                Usage: ./gencore fa ref1.fa,ref2.fa --set
-
+[--set|--vec]   Specify the mode for treating LCP cores. [--set] focuses only on presence or absence.
+                [--vec] includes frequencies includes in the similarity calculation. [Default: set]
 ```
 
 - **Write Cores**:
 
 ```
--w [filenames]  Store cores processed from input files.
-                Usage: ./gencore fa ref1.fa,ref2.fa -w ref1.cores,ref2.cores
-                or: ./gencore fa ref1.fa,ref2.fa -w -f filenames.txt
+-w [filename]   Store cores processed from input files.
+                Usage: ./gencore fa ref1.fa,ref2.fa -w ref1.lcpt,ref2.lcpt
+                       ./gencore fa ref1.fa,ref2.fa -w -f filenames.txt
 ```
+
+- **Prefix**:
+
+```
+-p [prefix]     Set the prefix for the output of the similarity matrices results. [Default: gc] 
+                Usage: ./gencore fa ref1.fa,ref2.fa -p simu
+```
+
+- **Short Names**:
+
+```
+-s [filename]   Set short names of input files. Default is first 10 characters of input file names.
+                Usage: ./gencore fa ref1.fa,ref2.fa -s ref1,ref2
+                       ./gencore fa ref1.fa,ref2.fa -s -f shortnames.txt
+```
+
+- **Verbose**:
+
+```
+-v              Verbose. [Default: false]
+                Usage: ./gencore fa ref1.fa,ref2.fa -v
+```
+
+### Sample Command
+
+```bash
+./gencore fa ref1.fa,ref2.fa -t 4 -l 5 -p output_prefix -v
+```
+
+#### Explanation of the Command:
+
+- `fa ref1.fa,ref2.fa`: This specifies the file format for the input files. In this case, fa stands for FASTA files. You could also use fq for FASTQ files or bam for BAM files, depending on the input format. Input files containing the genomic sequences in FASTA format that you want to compare. You can list multiple files, separated by commas, as shown in this example.
+- `t 4`: This option sets the number of threads to use. In this example, it specifies that GenCore should use 4 threads for parallel processing. This can help speed up the computation, especially when working with large datasets.
+- `l 5`: This option sets the LCP (Locally Consistent Parsing) level. The LCP level controls how deeply the tool looks into the sequences. A higher LCP level means more detailed analysis, it may also decrease processing time as less number of cores are compared while this will put more disntace in between genomes. The default value is 4, but here it’s set to 5 for a more thorough comparison.
+- `p output_prefix`: This option sets a prefix for the output files. All the generated distance matrices and other output files will start with this prefix. In this case, the prefix is output_prefix, so the generated files might look like output_prefix.set.dice.lvl5.phy or output_prefix.set.jaccard.lvl5.phy.
+- `v`: This option enables verbose output, which will display additional information about the processing steps. It’s useful for debugging or for gaining insights into the tool's progress and performance during execution.
 
 ## Input Files
 
 The **GenCore** tool requires specific input files to process genomic data and compute distance matrices. 
 Below are the details regarding the expected input file formats:
 
-1) FASTA Files: Each file must be in FASTA format, where each sequence represents a genomic region or chromosome.where genome_short_name is a unique 
+1) **FASTA Files**: Each file must be in FASTA format, where each sequence represents a genomic region or chromosome.
 
-2) FASTQ Files: Each file must be in FASTQ format and should be compressed using gzip (.gz), where each sequence represents a genomic region.
+2) **FASTQ Files**: Each file must be in FASTQ format and should be compressed using gzip (`.gz`), where each sequence represents a genomic region.
 
-3) BAM Files: Each file must be in BAM format, which is a binary version of the SAM format.
+3) **BAM Files**: Each file must be in BAM format, which is a binary version of the SAM format.
 
 ### File Input Options
 
 You can provide input files using one of the following methods:
 
-1) Command Line Arguments: Concatenate file names with commas, e.g., file1.fasta,file2.fastq,file3.bam.
+1) ``Command Line Arguments``: Provide the file names separated by commas, e.g., `ref1.fa,ref2.fa,ref3.fa`.
 
-2) File Option: Use the -f option to specify a file containing the names of input files, where each file name should be on a separate line. For example:
+2) ``File Option``: Use the `-f` option to specify a file containing the names of input files, where each file name should be on a separate line. For example:
 
     ```
-    file1.fasta
-    file2.fasta
-    file3.fasta
+    ref1.fa
+    ref2.fa
+    ref3.fa
     ```
 
 ## Program Outputs
@@ -196,28 +234,28 @@ The outputs are saved in the specified prefix format, and the following files wi
 
 1) **Dice Distance Matrix**:
 
-  - Filename: `<prefix>.dice.phy`
+  - Filename: `gc.set.dice.lvl4.phy`
 
-  - Format: The first line contains the number of genomes followed by a matrix of Dice distances. Each subsequent line starts with the short name of the genome, followed by the distances from that genome to all other genomes. The distance values are represented as floating-point numbers.
+  - Formula: $DICE(A,B) = \frac{2\times|A\cap B|}{|A|+|B|}$
+
+  - Format: The first line contains the number of genomes, followed by a matrix of Dice distances. Each subsequent line starts with the short name of the genome, followed by the distances from that genome to all other genomes. The distance values are represented as floating-point numbers.
 
 2) **Jaccard Similarity Matrix**:
 
-  - Filename: `<prefix>.jaccard.phy`
+  - Filename: `gc.set.jaccard.lvl4.phy`
 
-  - Format: Similar to the Dice distance matrix, this file contains the number of genomes on the first line, followed by the Jaccard similarity values. Each genome’s line starts with its short name and is followed by its similarities to all other genomes. Similar to the Dice matrix, these values are also represented as floating-point numbers.
+  - Formula: $JACCARD(A,B) = \frac{|A \cap B|}{|A \cup B|}$
+  
+  - Format: Similar to the Dice distance matrix, this file contains the number of genomes on the first line, followed by the Jaccard similarity values. Each genome’s line starts with its short name and is followed by its similarities to all other genomes. Similar to the Dice matrix, these values are also represented as floating-point numbers. The names are as the default values: prefix, mode, and lcp level.
 
-2) **Normalized Vector Similarity Matrix**:
-
-  - Filename: `<prefix>.ns.phy`
-
-  - Format: This file contains the number of genomes in the first line, followed by the normalized vector similarity distances. Each genome’s line starts with its short name and is followed by the similarity distances to all other genomes.
+These matrices are saved in `.phy` format, which is commonly used for storing distance matrices in phylogenetic analysis.
 
 ### Note 
 
 The distances and similarities computed are useful for phylogenetic analysis, allowing researchers to understand the relationships and evolutionary distances between different genomes. 
 Ensure to specify a valid prefix to easily manage output files and facilitate subsequent analyses.
 
-Output files contain distances which is calculated by subtracting the similarity score from 1.
+Output files contain distances, which are calculated by subtracting the similarity score from 1.
 
 ### Similarity Metrics
 
@@ -225,37 +263,28 @@ Output files contain distances which is calculated by subtracting the similarity
 
 * `Dice Similarity`: Similar to the Jaccard Similarity, the Dice Similarity measures the overlap between two genomes but considers the size of the two sets in its calculation, leading to a more sensitive measure in certain contexts.
 
-* `Distance Based Similarity`: This metric evaluates the similarity based on a distance function, with a value closer to 1 indicating minimal distance or high similarity between the genomes. It also include normalization of the given genomes having different read depths.
+## Additional Command for Phylogenetic Tree Construction:
 
-#### Distance Based Similarity
+```bash
+python3 phylowizard.py output_prefix.set.dice.lvl5.phy
+```
 
-The Distance Based Similarity between two genomic sequences, `G1` and `G2`, is determined through a formula that considers the occurrences of each LCP core within the genomes and their sequencing depths. 
-This approach aims to offer a detailed perspective on similarity, factoring in not only the presence of cores but also their abundance in relation to sequencing depth.
+### Explanation of the Command:
+  
+  - ``python3``: This invokes Python 3 to run the script. Make sure Python 3 is installed on your system. If you're working within a virtual environment, activate it beforehand.
+  
+  - ``phylowizard.py``: This is the Python script that will generate the phylogenetic tree. It takes a distance matrix in `.phy` format as input and produces both a Newick format tree and a PNG image of the tree.
+  
+  - ``output_prefix.set.dice.lvl5.phy``: This file is the distance matrix, typically generated from sequence comparisons using a tool like **GenCore**. It is in `.phy` format, which contains the distances between the genomes or sequences being analyzed. The `output_prefix` should be replaced with the actual prefix used during the generation of the matrix.
 
-#### Formula Breakdown
+### What This Command Does:
 
-Given two genomic sequences, `G1` and `G2`, the similarity is calculated using the following formula:
-
-$$
-1 - \frac{\sum_{i=1}^{n} | d_2 \cdot c_1^i - d_1 \cdot c_2^i |}{\sum_{i=1}^{n} d_2 \cdot c_1^i + d_1 \cdot c_2^i}
-$$
-
-Where:
-- \( $n$ \): The upper limit of the summation (number of cores).
-- \( $d_1, d_2$ \): represent the sequencing depths of genomes `G1` and `G2`, respectively.
-- \( $c_1^i, c_2^i$ \): Corresponds to the number of occurrences of core `i` in genomes, `G1` and `G2`, respectively.
-
-
-#### Interpretation
-
-This formula calculates the similarity by evaluating the absolute difference in the weighted occurrences of each core between the two genomes, normalized by the sum of these occurrences and subtracting from *1*. 
-The weights are assigned based on the sequencing depths of the genomes, allowing the similarity score to reflect variations in sequencing efforts accurately.
-
-* A Similarity score close to 1 indicates a high degree of similarity, implying minimal differences in the adjusted occurrences of cores between the genomes.
-* A score nearing 0 suggests greater disparity between the genomic sequences, as indicated by significant differences in the weighted core occurrences.
+1. The `phylowizard.py` script reads the `.phy` distance matrix file.
+2. It generates the phylogenetic tree based on this distance matrix.
+3. The script outputs two files:
+    - A Newick format tree file, which contains the tree structure in a textual format that can be used for further analysis or visualization.
+    - A PNG image of the phylogenetic tree, which provides a visual representation of the evolutionary relationships.
 
 ## License
 
-**GenCore** is released under BSD 3-Clause License.
-
-For more details, please visit the [license file](https://github.com/BilkentCompGen/gencore/blob/main/LICENSE).
+**GenCore** is released under the BSD 3-Clause License, which allows for redistribution and use in source and binary forms, with or without modification, under certain conditions. For more detailed terms, please refer to the [license file](https://github.com/BilkentCompGen/gencore/blob/main/LICENSE).
