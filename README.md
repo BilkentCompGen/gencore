@@ -195,10 +195,10 @@ The **GenCore** tool can be executed with various command-line options. Below ar
 #### Explanation of the Command:
 
 - `fa ref1.fa,ref2.fa`: This specifies the file format for the input files. In this case, fa stands for FASTA files. You could also use fq for FASTQ files or bam for BAM files, depending on the input format. Input files containing the genomic sequences in FASTA format that you want to compare. You can list multiple files, separated by commas, as shown in this example.
-- `t 4`: This option sets the number of threads to use. In this example, it specifies that GenCore should use 4 threads for parallel processing. This can help speed up the computation, especially when working with large datasets.
-- `l 5`: This option sets the LCP (Locally Consistent Parsing) level. The LCP level controls how deeply the tool looks into the sequences. A higher LCP level means more detailed analysis, it may also decrease processing time as less number of cores are compared while this will put more disntace in between genomes. The default value is 4, but here it’s set to 5 for a more thorough comparison.
-- `p output_prefix`: This option sets a prefix for the output files. All the generated distance matrices and other output files will start with this prefix. In this case, the prefix is output_prefix, so the generated files might look like output_prefix.set.dice.lvl5.phy or output_prefix.set.jaccard.lvl5.phy.
-- `v`: This option enables verbose output, which will display additional information about the processing steps. It’s useful for debugging or for gaining insights into the tool's progress and performance during execution.
+- `-t 4`: This option sets the number of threads to use. In this example, it specifies that GenCore should use 4 threads for parallel processing. This can help speed up the computation, especially when working with large datasets.
+- `-l 5`: This option sets the LCP (Locally Consistent Parsing) level. The LCP level controls how deeply the tool looks into the sequences. A higher LCP level means more detailed analysis, it may also decrease processing time as less number of cores are compared while this will put more distance in between genomes. The default value is 4, but here it’s set to 5 for a more thorough comparison.
+- `-p output_prefix`: This option sets a prefix for the output files. All the generated distance matrices and other output files will start with this prefix. In this case, the prefix is output_prefix, so the generated files might look like,`output_prefix.set.dice.lvl5.phy` and `output_prefix.set.jaccard.lvl5.phy`.
+- `-v`: This option enables verbose output, which will display additional information about the processing steps. It’s useful for debugging or for gaining insights into the tool's progress and performance during execution.
 
 ## Input Files
 
