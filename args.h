@@ -10,8 +10,8 @@
 struct pargs {
     program_mode mode;
     data_type type;
-    bool readCores;
-    bool writeCores;
+    bool readLcpt;
+    bool writeLcpt;
     std::string prefix;
     size_t threadNumber;
     int lcpLevel;
@@ -26,8 +26,8 @@ struct targs {
     std::string outFileName;
     std::string shortName;
     std::vector<uint32_t> cores;
-    size_t core_size;
-    size_t size;
+    size_t estimated_core_count;
+    size_t core_count;
 };
 
 

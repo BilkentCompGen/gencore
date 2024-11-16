@@ -20,7 +20,7 @@ void printUsage() {
 };
 
 
-void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, struct pargs& program_arguments ) {
+void parse( int argc, char **argv, std::vector<struct targs>& all_thread_arguments, struct pargs& program_arguments ) {
 
     if ( argc < 2 ) {
         printUsage();
@@ -30,8 +30,8 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     // set program arguments with their default values
     program_arguments.mode = FA;
     program_arguments.type = SET;
-    program_arguments.readCores = false;
-    program_arguments.writeCores = false;
+    program_arguments.readLcpt = false;
+    program_arguments.writeLcpt = false;
     program_arguments.prefix = PREFIX;
     program_arguments.threadNumber = THREAD_NUMBER;
     program_arguments.lcpLevel = 7;
@@ -45,7 +45,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     // Read `read mode` 
     // ------------------------------------------------------------------
     if ( strcmp(argv[index], "-r") == 0 ) {
-        program_arguments.readCores = true;
+        program_arguments.readLcpt = true;
 
         // move next argument
         index++;
@@ -54,7 +54,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     // ------------------------------------------------------------------
     // Read `program mode` 
     // ------------------------------------------------------------------
-    if ( !program_arguments.readCores ) {
+    if ( !program_arguments.readLcpt ) {
 
         // validate if following next argument exists
         if ( index >= argc ) {
@@ -107,7 +107,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
             while ( getline( file, line ) ) {
                 struct targs args;
                 args.inFileName = line;
-                thread_arguments.push_back(args);
+                all_thread_arguments.push_back(args);
             }
         } else {
             log(ERROR, "Couldn't open %s", filename.c_str());
@@ -117,7 +117,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
         file.close();
         
         // validate if at least 2 files are provided
-        if ( thread_arguments.size() < 2 ) {
+        if ( all_thread_arguments.size() < 2 ) {
             log(ERROR, "There should be at least 2 files in %s", filename.c_str());
             exit(1);
         }
@@ -129,11 +129,11 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
         while ( std::getline(ss, filename, ',') ) {
             struct targs args;
             args.inFileName = filename;
-            thread_arguments.push_back(args);
+            all_thread_arguments.push_back(args);
         }
 
         // validate if at least 2 files are provided
-        if ( thread_arguments.size() < 2 ) {
+        if ( all_thread_arguments.size() < 2 ) {
             log(ERROR, "There should be at least 2 files in %s, separated by commas.", argv[index]);
             exit(1);
         }
@@ -143,7 +143,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
 
     // Set short names' default values (first 10 characters of input file names)
     // If the file name is less than 10 characters, fill with space.
-    for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
+    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
         std::string name = it->inFileName;
 
         if ( name.size() < 10 ) {
@@ -230,8 +230,8 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
             // move next argument, skip `-w`
             index++;
 
-            // set program argument's writeCores mode to `true`
-            program_arguments.writeCores = true;
+            // set program argument's writeLcpt mode to `true`
+            program_arguments.writeLcpt = true;
             
             // validate if following next argument exists
             if ( index >= argc ) {
@@ -257,7 +257,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                 
                 if ( file.is_open() ) {  
                     try {
-                        for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
+                        for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
                             if ( !std::getline(file, it->outFileName) ) {
                                 throw std::invalid_argument("Missing output file name.");
                             }
@@ -276,7 +276,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                 try {
                     std::stringstream ss(argv[index]);
                     // parse given file names w.r.t comma and set to thread arguments' outFileName
-                    for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
+                    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
                         if ( !std::getline(ss, it->outFileName, ',') ) {
                             throw std::invalid_argument("Failed to parse output file name.");
                         }
@@ -341,7 +341,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
 
                 if ( file.is_open() ) {  
                     try {
-                        for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
+                        for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
                             if ( !std::getline(file, it->shortName) ) {
                                 throw std::invalid_argument("Missing short name name.");
                             }
@@ -367,7 +367,7 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
                 try {
                     std::stringstream ss(argv[index]);
                     // parse given file names w.r.t comma and set to thread arguments' shortName
-                    for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
+                    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
                         if ( !std::getline(ss, it->shortName, ',') ) {
                             throw std::invalid_argument("Failed to parse short name.");
                         }
@@ -462,8 +462,31 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
         }
     }
 
+    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
+        
+
+        if ( !program_arguments.readLcpt ) {
+            switch ( program_arguments.mode ) {
+                case FA:
+                    it->estimated_core_count = 0;
+                    break;
+                case FQ:
+                    it->estimated_core_count = 0;
+                    struct stat stat_buf;
+                    if (stat(it->inFileName.c_str(), &stat_buf) == 0) {
+                        size_t estimated_genome_size = static_cast<size_t>(stat_buf.st_size * COMPRESSION_RATIO) / 2;
+                        it->estimated_core_count = static_cast<size_t>(estimated_genome_size * std::pow(0.45, program_arguments.lcpLevel));
+                    }
+                    break;
+                case BAM:
+                    it->estimated_core_count = 0;
+                    break;
+            }
+        }
+    }
+
     // Log parameters
-    if( program_arguments.readCores ) { 
+    if( program_arguments.readLcpt ) { 
         log(INFO, "Reading cores from file.");
     } else {
         log(INFO, "Program mode: %s", ( program_arguments.mode == FA ? "FA" : ( program_arguments.mode == FQ ? "FQ" : "BAM" ) ) );
@@ -474,11 +497,11 @@ void parse( int argc, char **argv, std::vector<struct targs>& thread_arguments, 
     log(INFO, "LCP level: %d", program_arguments.lcpLevel);
     log(INFO, "Prefix: %s", program_arguments.prefix.c_str());
 
-    if( program_arguments.writeCores ) { 
+    if( program_arguments.writeLcpt ) { 
         log(INFO, "Program will write cores to files.");
     }
 
-    for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
-        program_arguments.verbose && log(INFO, "inFileName: %s, shortName: %s, outFileName: %s", it->inFileName.c_str(), it->shortName.c_str(), it->outFileName.c_str());
+    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
+        program_arguments.verbose && log(INFO, "estimated count: %ld, inFileName: %s, shortName: %s, outFileName: %s", it->estimated_core_count, it->inFileName.c_str(), it->shortName.c_str(), it->outFileName.c_str());
     }
 };

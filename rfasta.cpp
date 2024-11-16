@@ -1,14 +1,14 @@
 #include "rfasta.h"
 
 
-void read_fastas( std::vector<struct targs>& thread_arguments, const struct pargs& program_arguments ) {
+void read_fastas( std::vector<struct targs>& all_thread_arguments, const struct pargs& program_arguments ) {
     
     std::vector<std::thread> threads;
-    std::vector<struct targs>::iterator current_argument = thread_arguments.begin();
+    std::vector<struct targs>::iterator current_argument = all_thread_arguments.begin();
 
-    while (current_argument < thread_arguments.end()) {
+    while (current_argument < all_thread_arguments.end()) {
 
-        while (threads.size() < program_arguments.threadNumber && current_argument < thread_arguments.end()) {
+        while (threads.size() < program_arguments.threadNumber && current_argument < all_thread_arguments.end()) {
             threads.emplace_back(read_fasta, std::ref(*current_argument), std::ref(program_arguments));
             current_argument++;
         }
@@ -42,7 +42,17 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
     std::fstream file;
     file.open( thread_arguments.inFileName, std::ios::in );
 
-    thread_arguments.size = 0;
+    // create file for writing cores
+    std::ofstream out; 
+
+    if ( program_arguments.writeLcpt ) {
+        out.open(thread_arguments.outFileName, std::ios::binary);
+
+        if ( !out ) {
+            log(ERROR, "Error opening file for saving into file %s", thread_arguments.outFileName.c_str());
+            return;
+        }
+    }
 
     // read file
     if ( file.is_open() ) {
@@ -61,14 +71,11 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
                     str->deepen( program_arguments.lcpLevel );
                     str->get_labels( thread_arguments.cores );
 
-                    if ( program_arguments.writeCores ) {
-                        save( thread_arguments, str );
+                    if ( program_arguments.writeLcpt ) {
+                        save( out, str );
                     }
 
-                    delete str;
-
-                    // increment processed sequence size
-                    thread_arguments.size += sequence.size();                    
+                    delete str;                  
 
                     // cleanup
                     sequence.clear();
@@ -89,15 +96,12 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
             str->deepen( program_arguments.lcpLevel );
             str->get_labels( thread_arguments.cores );
 
-            if ( program_arguments.writeCores ) {
-                save( thread_arguments, str );
+            if ( program_arguments.writeLcpt ) {
+                save( out, str );
             }
 
             delete str;
-
-            // increment processed sequence size
-            thread_arguments.size += sequence.size();
-
+            
             // cleanup
             sequence.clear();
         }
@@ -108,14 +112,16 @@ void read_fasta( struct targs& thread_arguments, const struct pargs& program_arg
         exit(1);
     }
 
-    // log ending of processing fasta
-    program_arguments.verbose && log(INFO, "Thread ID: %s ended processing %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
-
     // end writing cores to file if user specified to do so
-    if ( program_arguments.writeCores ) {
-        done( thread_arguments );
+    if ( program_arguments.writeLcpt ) {
+        done( out );
+        out.close();
     }
 
-    // set lcp cores and counts to arguments
+    // sort and filter the cores
     generateSignature( thread_arguments, program_arguments );
+
+    // log ending of processing fasta
+    program_arguments.verbose && log(INFO, "Thread ID: %s ended processing %s, size: %ld", ss.str().c_str(), thread_arguments.inFileName.c_str(), thread_arguments.cores.size());
+
 };

@@ -27,14 +27,18 @@ void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores) {
     size_t size = 0;
     
     for(std::vector<lcp::lps*>::iterator it_str = strs.begin(); it_str != strs.end(); it_str++) {
-        size += (*it_str)->cores->size();
+        if ( (*it_str)->cores != nullptr ) {
+            size += (*it_str)->cores->size();
+        }
     }
 
     lcp_cores.reserve(size);
 
     for(std::vector<lcp::lps*>::iterator it_str = strs.begin(); it_str != strs.end(); it_str++) {
-        for ( std::vector<lcp::core>::iterator it_lcp = (*it_str)->cores->begin(); it_lcp != (*it_str)->cores->end(); it_lcp++ ) {
-            lcp_cores.push_back( (it_lcp)->label );
+        if ( (*it_str)->cores != nullptr ) {
+            for ( std::vector<lcp::core>::iterator it_lcp = (*it_str)->cores->begin(); it_lcp != (*it_str)->cores->end(); it_lcp++ ) {
+                lcp_cores.push_back( (it_lcp)->label );
+            }
         }
     }
 };
@@ -67,8 +71,8 @@ void generateSignature( struct targs& thread_arguments, const struct pargs& prog
         for( std::vector<uint32_t>::const_iterator it = thread_arguments.cores.begin() + 1; it < thread_arguments.cores.end(); it++ ) {
             *(it-1) != *it && count++;
         }
-        thread_arguments.core_size = count;
+        thread_arguments.core_count = count;
     } else {
-        thread_arguments.core_size = thread_arguments.cores.size();
+        thread_arguments.core_count = thread_arguments.cores.size();
     }    
 };

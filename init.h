@@ -6,6 +6,8 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <cmath>
+#include <sys/stat.h>
 #include "args.h"
 #include "program_mode.h"
 #include "logging.h"
@@ -20,6 +22,10 @@
 
 #ifndef PREFIX 
 #define PREFIX "gc"
+#endif
+
+#ifndef COMPRESSION_RATIO
+#define COMPRESSION_RATIO 4
 #endif
 
 /**

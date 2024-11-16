@@ -14,29 +14,29 @@
 int main(int argc, char **argv) {
 
     // Parse and initialize arguments
-    std::vector<struct targs> thread_arguments;
+    std::vector<struct targs> all_thread_arguments;
     struct pargs program_arguments;
 
-    parse(argc, argv, thread_arguments, program_arguments);
+    parse(argc, argv, all_thread_arguments, program_arguments);
 
-    const size_t numGenomes = thread_arguments.size();
+    const size_t numGenomes = all_thread_arguments.size();
 
     // Initialize coefficient arrays
     lcp::encoding::init( program_arguments.verbose );
 
     // Process files program
-    if ( program_arguments.readCores ) {
-        read_cores( thread_arguments, program_arguments );
+    if ( program_arguments.readLcpt ) {
+        read_lcpts( all_thread_arguments, program_arguments );
     } else {
         switch ( program_arguments.mode ) {
         case FA:
-            read_fastas( thread_arguments, program_arguments );
+            read_fastas( all_thread_arguments, program_arguments );
             break;
         case FQ:
-            read_fastqs( thread_arguments, program_arguments );
+            read_fastqs( all_thread_arguments, program_arguments );
             break;
         case BAM:
-            for ( std::vector<struct targs>::iterator it = thread_arguments.begin(); it < thread_arguments.end(); it++ ) {
+            for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
                 read_bam( *it, program_arguments );
             }
             break;
@@ -58,8 +58,8 @@ int main(int argc, char **argv) {
     }
 
     // Compute similarity scores
-    for ( std::vector<struct targs>::iterator it1 = thread_arguments.begin(); it1 < thread_arguments.end(); it1++ ) { 
-        for ( std::vector<struct targs>::iterator it2 = it1+1; it2 < thread_arguments.end(); it2++ ) {
+    for ( std::vector<struct targs>::iterator it1 = all_thread_arguments.begin(); it1 < all_thread_arguments.end(); it1++ ) { 
+        for ( std::vector<struct targs>::iterator it2 = it1+1; it2 < all_thread_arguments.end(); it2++ ) {
             
             size_t interSize, unionSize;
             calculateIntersectionAndUnionSizes( *it1, *it2, program_arguments, interSize, unionSize );
@@ -67,12 +67,12 @@ int main(int argc, char **argv) {
             double jaccard_similarity = calculateJaccardSimilarity( interSize, unionSize );
             double dice_similarity = calculateDiceSimilarity( interSize, *it1, *it2 );
 
-            dice[it1 - thread_arguments.begin()][it2 - thread_arguments.begin()] = dice_similarity;
-            jaccard[it1 - thread_arguments.begin()][it2 - thread_arguments.begin()] = jaccard_similarity;
+            dice[it1 - all_thread_arguments.begin()][it2 - all_thread_arguments.begin()] = dice_similarity;
+            jaccard[it1 - all_thread_arguments.begin()][it2 - all_thread_arguments.begin()] = jaccard_similarity;
 
             // set values to transposed locations
-            dice[it2 - thread_arguments.begin()][it1 - thread_arguments.begin()] = dice_similarity;
-            jaccard[it2 - thread_arguments.begin()][it1 - thread_arguments.begin()] = jaccard_similarity;
+            dice[it2 - all_thread_arguments.begin()][it1 - all_thread_arguments.begin()] = dice_similarity;
+            jaccard[it2 - all_thread_arguments.begin()][it1 - all_thread_arguments.begin()] = jaccard_similarity;
         }
     }
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv) {
         
         for(size_t i = 0; i < numGenomes; i++ ) {
             
-            dice_out << thread_arguments[i].shortName;  
+            dice_out << all_thread_arguments[i].shortName;  
 
             for(size_t j = 0; j < numGenomes; j++ ) {
                 dice_out << std::fixed << std::setprecision(15) << " " << 1-dice[i][j];
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
 
         for(size_t i = 0; i < numGenomes; i++ ) {
             
-            jaccard_out << thread_arguments[i].shortName;  
+            jaccard_out << all_thread_arguments[i].shortName;  
 
             for(size_t j = 0; j < numGenomes; j++ ) {
                 jaccard_out << std::fixed << std::setprecision(15) << " " << 1-jaccard[i][j];

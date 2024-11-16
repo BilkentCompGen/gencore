@@ -66,5 +66,5 @@ double calculateJaccardSimilarity( size_t intersectionSize, size_t unionSize ) {
 
 
 double calculateDiceSimilarity( const size_t intersectionSize, const struct targs& argument1, const struct targs& argument2 ) {
-    return 2 * static_cast<double>(intersectionSize) / ( static_cast<double>(argument1.core_size) + static_cast<double>(argument2.core_size) );
+    return 2 * static_cast<double>(intersectionSize) / ( static_cast<double>(argument1.core_count) + static_cast<double>(argument2.core_count) );
 };

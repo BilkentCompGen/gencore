@@ -63,7 +63,7 @@ void read_fastas( std::vector<struct targs>& thread_arguments, const struct parg
  *   `deepen()`. The sequence is then stored in a vector for further processing.
  * - If the `verbose` flag in `program_arguments` is set, the function logs detailed information about each 
  *   sequence, including its ID and size.
- * - Once all sequences are processed, the function optionally saves the LCP cores to a file if the `writeCores` 
+ * - Once all sequences are processed, the function optionally saves the LCP cores to a file if the `writeLcpt` 
  *   flag is enabled.
  * - Finally, the LCP cores are flattened and processed to generate a signature and initialize sets and counts.
  * - The function ensures proper memory management by cleaning up dynamically allocated `lps` objects.
