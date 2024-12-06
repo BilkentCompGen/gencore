@@ -19,7 +19,7 @@ HTSLIB_CXXFLAGS := -I$(CURRENT_DIR)/htslib/include
 HTSLIB_LDFLAGS := -L$(CURRENT_DIR)/htslib/lib -lhts -Wl,-rpath,$(CURRENT_DIR)/htslib/lib -pthread
 
 $(TARGET): $(OBJS)
-	$(GXX) $(CXXFLAGS) $(LDFLAGS) -o $@ $^ $(LCPTOOLS_LDFLAGS) $(HTSLIB_LDFLAGS)
+	$(GXX) $(CXXFLAGS) -o $@ $^ $(LCPTOOLS_LDFLAGS) $(HTSLIB_LDFLAGS)
 	rm *.o
 
 chtslib.o: chtslib.cpp
