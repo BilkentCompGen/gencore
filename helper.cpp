@@ -44,6 +44,15 @@ void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores) {
 };
 
 
+void append(lcp::lps *str, std::vector<uint32_t>& lcp_cores) {
+    if ( str->cores != nullptr ) {
+        for ( std::vector<lcp::core>::iterator it_lcp = str->cores->begin(); it_lcp != str->cores->end(); it_lcp++ ) {
+            lcp_cores.push_back( it_lcp->label );
+        }
+    }
+};
+
+
 void generateSignature( struct targs& thread_arguments, const struct pargs& program_arguments ) {
     
     std::sort(thread_arguments.cores.begin(), thread_arguments.cores.end());
@@ -55,7 +64,7 @@ void generateSignature( struct targs& thread_arguments, const struct pargs& prog
         if ( *it == *(it - 1) ) {
             count++;
         } else {
-            if ( count >= program_arguments.min_cc && count <= program_arguments.max_cc ) {
+            if ( count >= thread_arguments.min_cc && count <= thread_arguments.max_cc ) {
                 while ( count-- ) {
                     *write_index++ = *(it - 1);
                 }

@@ -36,8 +36,6 @@ void parse( int argc, char **argv, std::vector<struct targs>& all_thread_argumen
     program_arguments.threadNumber = THREAD_NUMBER;
     program_arguments.lcpLevel = 7;
     program_arguments.verbose = false;
-    program_arguments.min_cc = 1;
-    program_arguments.max_cc = 4294967295;
 
     int index = 1;
     
@@ -153,6 +151,8 @@ void parse( int argc, char **argv, std::vector<struct targs>& all_thread_argumen
         }
 
         it->shortName = name;
+        it->min_cc = 1;
+        it->max_cc = 4294967295;
     }
 
     // Read rest of the arguments if provided
@@ -402,15 +402,64 @@ void parse( int argc, char **argv, std::vector<struct targs>& all_thread_argumen
                 exit(1);
             }
 
-            // get minimum core count and validate it
-            try {
-                if ( std::stoi(argv[index]) <= 0 ) {
-                    throw std::invalid_argument("Invalid minimum core count value.");
+            if ( strcmp(argv[index], "-f") == 0 ) {         // if minimum core counts are provided in txt file
+                
+                // move next argument, skip `-f`
+                index++;
+                
+                // validate if following next argument exists
+                if ( index >= argc ) {
+                    log(ERROR, "Missing file name.");
+                    exit(1);
                 }
-                program_arguments.min_cc = std::stoi(argv[index]);
-            } catch ( const std::invalid_argument& e ) {
-                log(ERROR, "Invalid minimum core count provided.");
-                exit(1);
+
+                // read file names from file
+                std::string filename(argv[index]);        
+                std::fstream file;
+                file.open( filename, std::ios::in );
+                std::string min_cc; 
+                
+                if ( file.is_open() ) {  
+                    try {
+                        for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
+                            if ( !std::getline(file, min_cc) ) {
+                                throw std::invalid_argument("Missing value.");
+                            }
+
+                            // get minimum core count and validate it
+                            try {
+                                if ( std::stoi(min_cc) <= 0 ) {
+                                    throw std::invalid_argument("Invalid minimum core count value.");
+                                }
+                                it->min_cc = std::stoi(min_cc);
+                            } catch ( const std::invalid_argument& e ) {
+                                log(ERROR, "Invalid minimum core count provided.");
+                                exit(1);
+                            }
+                        }
+                    } catch ( const std::invalid_argument& e ) {
+                        log(ERROR, "Number of input file should match output file names count.");
+                        exit(1);
+                    }
+                } else {
+                    log(ERROR, "Couldn't open %s", filename.c_str());
+                    exit(1);
+                }
+
+                file.close();
+            } else {                                        // if minimum core counts are provided as same for all
+                // get minimum core count and validate it
+                try {
+                    if ( std::stoi(argv[index]) <= 0 ) {
+                        throw std::invalid_argument("Invalid minimum core count value.");
+                    }
+                    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
+                        it->min_cc = std::stoi(argv[index]);
+                    }
+                } catch ( const std::invalid_argument& e ) {
+                    log(ERROR, "Invalid minimum core count provided.");
+                    exit(1);
+                }
             }
 
             // move next argument
@@ -430,15 +479,64 @@ void parse( int argc, char **argv, std::vector<struct targs>& all_thread_argumen
                 exit(1);
             }
 
-            // get maximum core count and validate it
-            try {
-                if ( std::stoi(argv[index]) <= 0 ) {
-                    throw std::invalid_argument("Invalid maximum core count value.");
+            if ( strcmp(argv[index], "-f") == 0 ) {         // if minimum core counts are provided in txt file
+                
+                // move next argument, skip `-f`
+                index++;
+                
+                // validate if following next argument exists
+                if ( index >= argc ) {
+                    log(ERROR, "Missing file name.");
+                    exit(1);
                 }
-                program_arguments.max_cc = std::stoi(argv[index]);
-            } catch ( const std::invalid_argument& e ) {
-                log(ERROR, "Invalid maximum core count provided.");
-                exit(1);
+
+                // read file names from file
+                std::string filename(argv[index]);        
+                std::fstream file;
+                file.open( filename, std::ios::in );
+                std::string max_cc; 
+                
+                if ( file.is_open() ) {  
+                    try {
+                        for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
+                            if ( !std::getline(file, max_cc) ) {
+                                throw std::invalid_argument("Missing value.");
+                            }
+
+                            // get minimum core count and validate it
+                            try {
+                                if ( std::stoi(max_cc) <= 0 ) {
+                                    throw std::invalid_argument("Invalid maximum core count value.");
+                                }
+                                it->max_cc = std::stoi(max_cc);
+                            } catch ( const std::invalid_argument& e ) {
+                                log(ERROR, "Invalid maximum core count provided.");
+                                exit(1);
+                            }
+                        }
+                    } catch ( const std::invalid_argument& e ) {
+                        log(ERROR, "Number of input file should match output file names count.");
+                        exit(1);
+                    }
+                } else {
+                    log(ERROR, "Couldn't open %s", filename.c_str());
+                    exit(1);
+                }
+
+                file.close();
+            } else {                                        // if minimum core counts are provided as same for all
+                // get minimum core count and validate it
+                try {
+                    if ( std::stoi(argv[index]) <= 0 ) {
+                        throw std::invalid_argument("Invalid maximum core count value.");
+                    }
+                    for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
+                        it->max_cc = std::stoi(argv[index]);
+                    }
+                } catch ( const std::invalid_argument& e ) {
+                    log(ERROR, "Invalid maximum core count provided.");
+                    exit(1);
+                }
             }
 
             // move next argument
@@ -502,6 +600,6 @@ void parse( int argc, char **argv, std::vector<struct targs>& all_thread_argumen
     }
 
     for ( std::vector<struct targs>::iterator it = all_thread_arguments.begin(); it < all_thread_arguments.end(); it++ ) {
-        program_arguments.verbose && log(INFO, "estimated count: %ld, inFileName: %s, shortName: %s, outFileName: %s", it->estimated_core_count, it->inFileName.c_str(), it->shortName.c_str(), it->outFileName.c_str());
+        program_arguments.verbose && log(INFO, "estimated count: %ld, inFileName: %s, shortName: %s, outFileName: %s, min-cc %ld, max-cc: %ld", it->estimated_core_count, it->inFileName.c_str(), it->shortName.c_str(), it->outFileName.c_str(), it->min_cc, it->max_cc);
     }
 };

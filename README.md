@@ -62,22 +62,13 @@ make install
 # This installs required dependencies (htslib, lcptools) and compiles the GenCore executable.
 ```
 
-- **Clean Up**: To remove object files and the target binary, run:
-
-```
-make clean
-```
+- **Clean Up**: To remove object files and the target binary, run: *`make clean`*
 
 These instructions assume that you have `git`, a C++ compiler, and `make` installed on your system. 
 
 ### Reinstalling Dependencies
 
-If you need to reinstall `htslib` or `lcptools`, use:
-
-```bash
-make reinstall-htslib
-make reinstall-lcptools
-```
+If you need to reinstall `htslib`, use *`make reinstall-htslib`*; tp reinstall `lcptools`, use *`make reinstall-lcptools`*
 
 ## Usage
 
@@ -135,9 +126,11 @@ The **GenCore** tool can be executed with various command-line options. Below ar
 
 ```
 --min-cc [num]  Set the minimum frequency (core count) for a core to be included in the similarity analysis. 
-                Only cores with a frequency greater than or equal to the specified value will be considered. 
+                Only cores with a frequency greater than or equal to the specified value will be considered.
+                You can give multiple threashold in txt file that will be set to each genomes argument. 
                 [Default: 1]
                 Usage: ./gencore fa ref1.fa,ref2.fa --min-cc 2
+                   or  ./gencore fa ref1.fa,ref2.fa --min-cc -f min_threasholds.txt
 ```
 
 - **Maximum Core Count Value**:
@@ -145,8 +138,10 @@ The **GenCore** tool can be executed with various command-line options. Below ar
 ```
 --max-cc [num]  Set the maximum frequency (core count) for a core to be included in the similarity analysis. 
                 Only cores with a frequency less than or equal to the specified value will be considered. 
+                You can give multiple threashold in txt file that will be set to each genomes argument. 
                 [Default: 4294967295]
                 Usage: ./gencore fa ref1.fa,ref2.fa --max-cc 100
+                   or  ./gencore fa ref1.fa,ref2.fa --max-cc -f max_threashols.txt
 ```
 
 - **Set Type**:

@@ -9,7 +9,6 @@
 #include "args.h"
 #include "lps.h"
 
-
 /**
  * @brief Generates the reverse complement of a DNA sequence.
  *
@@ -21,35 +20,50 @@
  * @param sequence The DNA sequence to be reversed and complemented.
  * @return Returns a new string containing the reverse complement of the input sequence.
  */
-bool reverseComplement( std::string& sequence );
+bool reverseComplement(std::string &sequence);
 
 /**
  * @brief Flattens a collection of locally parsed strings into a single vector of core labels.
- * 
+ *
  * This function processes a vector of pointers to `lcp::lps` (Locally Consisted Parsing) structures
  * and extracts the labels from their associated cores, appending them to the output vector `lcp_cores`.
- * The resulting flattened vector contains the labels of all `core` elements, maintaining the same 
+ * The resulting flattened vector contains the labels of all `core` elements, maintaining the same
  * order as they appear in the original structures.
- * 
+ *
  * @param strs A reference to a vector of pointers to `lcp::lps` structures, each containing a collection of cores.
  * @param lcp_cores A reference to a vector of 32-bit unsigned integers that will be populated with core labels.
- *                  This vector is modified in-place, and its capacity is pre-allocated based on the total number 
+ *                  This vector is modified in-place, and its capacity is pre-allocated based on the total number
  *                  of cores across all locally parsed strings.
  */
-void flatten(std::vector<lcp::lps*>& strs, std::vector<uint32_t>& lcp_cores);
+void flatten(std::vector<lcp::lps *> &strs, std::vector<uint32_t> &lcp_cores);
+
+/**
+ * @brief Appends core labels from an `lcp::lps` structure to a vector.
+ *
+ * This function extracts the labels of all `core` elements from the provided
+ * `lcp::lps` structure and appends them to the specified output vector `lcp_cores`.
+ * It is designed for efficient processing of locally parsed strings by incrementally
+ * building a flattened collection of core labels.
+ *
+ * @param str A pointer to an `lcp::lps` structure containing cores whose labels
+ *            need to be appended.
+ * @param lcp_cores A reference to a vector of 32-bit unsigned integers where the
+ *                  core labels will be appended. The vector is modified in-place.
+ */
+void append(lcp::lps *str, std::vector<uint32_t> &lcp_cores);
 
 /**
  * @brief Sorts the provided vector of hash values in ascending order.
- * 
+ *
  * This function modifies the input vector `hash_values` by sorting it in-place
- * using the standard library's `std::sort` algorithm. The resulting vector 
+ * using the standard library's `std::sort` algorithm. The resulting vector
  * will contain the same values arranged in ascending order.
- * 
- * @param thread_arguments A reference to a vector of `targs` structures 
+ *
+ * @param thread_arguments A reference to a vector of `targs` structures
  *        representing the arguments specific to each thread which is needed for cores.
- * @param program_arguments A constant reference to a `pargs` structure 
+ * @param program_arguments A constant reference to a `pargs` structure
  *        representing the global program arguments.
  */
-void generateSignature( struct targs& thread_arguments, const struct pargs& program_arguments );
+void generateSignature(struct targs &thread_arguments, const struct pargs &program_arguments);
 
 #endif

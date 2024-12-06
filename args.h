@@ -16,8 +16,6 @@ struct pargs {
     size_t threadNumber;
     int lcpLevel;
     bool verbose;
-    uint32_t min_cc;
-    uint32_t max_cc;
 };
 
 
@@ -28,6 +26,8 @@ struct targs {
     std::vector<uint32_t> cores;
     size_t estimated_core_count;
     size_t core_count;
+    uint32_t min_cc;
+    uint32_t max_cc;
 };
 
 

@@ -60,7 +60,7 @@ void read_lcpt( struct targs& thread_arguments, struct pargs& program_arguments 
     program_arguments.verbose && log(INFO, "Thread ID: %s started loading %s", ss.str().c_str(), thread_arguments.inFileName.c_str());
 
     // load lcp cores
-    std::vector<lcp::lps*> strs;
+    thread_arguments.cores.reserve( 10000000 ); // it is defalt and I don't like it
     bool isDone;
 
     // open file
@@ -76,22 +76,15 @@ void read_lcpt( struct targs& thread_arguments, struct pargs& program_arguments 
     while( !isDone ) {
         lcp::lps *str = new lcp::lps(in);
         str->deepen( program_arguments.lcpLevel );
+        
+        append(str, thread_arguments.cores);
 
-        strs.push_back(str);
+        delete str;
 
         in.read(reinterpret_cast<char*>(&isDone), sizeof(isDone));
     } 
     
     in.close();
-
-    // get lcp core hashes
-    flatten(strs, thread_arguments.cores );
-
-    // delete lcp cores
-    for ( std::vector<lcp::lps*>::iterator it = strs.begin(); it != strs.end(); it++ ) {
-        delete (*it);
-    }
-    strs.clear();
 
     // set lcp cores and counts to arguments
     generateSignature( thread_arguments, program_arguments );
