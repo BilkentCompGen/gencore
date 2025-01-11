@@ -15,7 +15,7 @@ void printFaUsage() {
     printf("\t-l [num]        Lcp-level. [Default: 4]\n\n");
     printf("\t-t [num]        Number of threads. [Default: 8]\n\n");
     printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 1]\n\n");
-    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT64_MAX]\n\n");
+    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT32_MAX]\n\n");
     printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n\n");
     printf("\t-o [filename]   Store cores.\n\n");
     printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n\n");
@@ -418,7 +418,7 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
     if ((*genome_arguments)[0].verbose) {
         for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            log1(INFO, "inFileName: %s, shortName: %s, outFileName: %s, min-cc %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
+            log1(INFO, "in: %s, short: %s, out: %s, min-cc %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
         }
     }
 }

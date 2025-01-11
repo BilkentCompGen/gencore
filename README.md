@@ -81,7 +81,7 @@ For detailed options for each program, see the sections below.
 
 - **`--min-cc-file [filename]`**: File containing minimum core count thresholds for each input file (one per line).
 
-- **`--max-cc [num]`**: Maximum frequency (core count) for a core (default: UINT64\_MAX).
+- **`--max-cc [num]`**: Maximum frequency (core count) for a core (default: UINT32\_MAX).
 
 - **`--max-cc-file [filename]`**: File containing maximum core count thresholds for each input file (one per line).
 
@@ -169,7 +169,7 @@ For processing genome reads with specific core count limits:
   - The same line index in all input files corresponds to the same genome or read argument. For example:
     - Line 1 of `genome_files.txt` corresponds to Line 1 of `short_names.txt`.
 
-The example files are provided under [example](https://github.com/BilkentCompGen/lcptools/tree/main/example) folder.
+The example files are provided under [example](https://github.com/BilkentCompGen/gencore/tree/main/example) folder.
 
 ---
 

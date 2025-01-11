@@ -194,20 +194,44 @@ void genSign(struct gargs *genome_arguments, sim_calculation_type mode) {
     simple_core *cores = genome_arguments->cores;
     uint64_t len = genome_arguments->cores_len;
     double totalLen = genome_arguments->total_len;
+    uint32_t min_cc = genome_arguments->min_cc;
+    uint32_t max_cc = genome_arguments->max_cc;
 
     quicksort(cores, 0, len);
+    
+    uint64_t index = 0;
+    uint64_t i = 0;
 
+    while (i<len) {
+        uint64_t freq = 1;
+
+        for (uint64_t j=i+1; j<len && cores[i]==cores[j]; j++, freq++);
+
+        if (min_cc<=freq && freq<=max_cc) {
+            memcpy(&(cores[index]), &(cores[i]), freq * sizeof(simple_core));
+            index += freq;
+        }
+
+        i += freq;
+    }
+    
     if (mode == VECTOR) {
+        genome_arguments->cores_len = index;
         return;
     }
 
-    uint64_t index = 0;
-    for (uint64_t i=1; i<len; i++) {
+    len = index;
+    index = 0;
+    i=1;
+    totalLen += cores[0] & 0xFFFFFFFF;
+
+    while (i<len) {
         if (cores[index] != cores[i]) {
             index++;
             cores[index] = cores[i];
             totalLen += cores[i] & 0xFFFFFFFF;
         }
+        i++;
     }
 
     if (index) {
