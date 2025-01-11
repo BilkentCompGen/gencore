@@ -1,16 +1,14 @@
 # programs
 TARGET := gencore
-SRCS := $(wildcard *.cpp)
-OBJS := $(SRCS:.cpp=.o)
+SRCS := $(wildcard *.c)
+OBJS := $(SRCS:.c=.o)
 
 # directories
 CURRENT_DIR := $(shell pwd)
-BIN_DIR := $(CURRENT_DIR)/bin
 
 # compiler
-GXX := g++
-CXXFLAGS = -Wall -Wextra -O2 -std=c++11
-TIME := /usr/bin/time -v
+GXX := gcc
+CXXFLAGS = -O3 -Wall -Wextra -Wpedantic
 
 # object files that need lcptools
 LCPTOOLS_CXXFLAGS := -I$(CURRENT_DIR)/lcptools/include
@@ -19,44 +17,29 @@ HTSLIB_CXXFLAGS := -I$(CURRENT_DIR)/htslib/include
 HTSLIB_LDFLAGS := -L$(CURRENT_DIR)/htslib/lib -lhts -Wl,-rpath,$(CURRENT_DIR)/htslib/lib -pthread
 
 $(TARGET): $(OBJS)
-	$(GXX) $(CXXFLAGS) -o $@ $^ $(LCPTOOLS_LDFLAGS) $(HTSLIB_LDFLAGS)
+	$(GXX) $(CXXFLAGS) -o $@ $^ $(LCPTOOLS_LDFLAGS) $(HTSLIB_LDFLAGS) -lm
 	rm *.o
 
-chtslib.o: chtslib.cpp
-	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) -c $< -o $@
-
-rbam.o: rbam.cpp
+gencore.o: gencore.c
 	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
 
-gencore.o: gencore.cpp
+rfasta.o: rfasta.c
+	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
+
+rfastq.o: rfastq.c
 	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
 
-fileio.o: fileio.cpp
+rload.o: rload.c
 	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
 
-helper.o: helper.cpp
+utils.o: utils.c
+	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@ -lz
+
+init.o: init.c
 	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
 
-rfasta.o: rfasta.cpp
-	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
-
-rfastq.o: rfastq.cpp
-	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
-
-%.o: %.cpp
+%.o: %.c
 	$(GXX) $(CXXFLAGS) -c $< -o $@
-
-# dependencies
-chtslib.o:
-fileio.o: helper.o similarity_metrics.o
-gencore.o: init.o rbam.o rfasta.o rfastq.o similarity_metrics.o
-helper.o:
-init.o: logging.o
-logging.o:
-rbam.o: similarity_metrics.o chtslib.o
-rfasta.o: similarity_metrics.o helper.o fileio.o
-rfastq.o: helper.o similarity_metrics.o
-similarity_metrics.o: logging.o
 
 clean: 
 	@echo "Cleaning"

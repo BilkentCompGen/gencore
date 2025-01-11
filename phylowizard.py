@@ -2,18 +2,12 @@ import numpy as np
 from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
 from Bio import Phylo
 import argparse
-import matplotlib.pyplot as plt
-from ete3 import Tree, TreeStyle
-
 import os
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
-
 
 def remove_inner_labels(tree):
     for clade in tree.find_clades():
         if not clade.is_terminal():
             clade.name = None
-
 
 def read_phy(filename):
     with open(filename, 'r') as file:
@@ -38,7 +32,6 @@ def read_phy(filename):
 
     return labels, lower_triangle
 
-
 def construct_upgma_tree(labels, distance_matrix):
     dm = DistanceMatrix(labels, distance_matrix)
     constructor = DistanceTreeConstructor()
@@ -46,7 +39,6 @@ def construct_upgma_tree(labels, distance_matrix):
     
     # remove inner labels
     remove_inner_labels(tree)
-    
     return tree
 
 def construct_nj_tree(labels, distance_matrix):
@@ -56,47 +48,13 @@ def construct_nj_tree(labels, distance_matrix):
     
     # remove inner labels if needed
     remove_inner_labels(tree)
-    
     return tree
 
-
-def save_ete_tree(newick_str, output_file, circular=False):
-    tree = Tree(newick_str, format=1, quoted_node_names=True)
-    
-    if circular:
-        ts = TreeStyle()
-        ts.show_leaf_name = True
-        ts.mode = "c"
-        ts.branch_vertical_margin = 5
-        ts.show_scale = True
-        tree.render(output_file + "_ete.png", w=1000, units="px", tree_style=ts)
-    else:
-        ts = TreeStyle()
-        ts.show_leaf_name = True
-        ts.branch_vertical_margin = 5
-        ts.show_scale = True
-        tree.render(output_file + "_ete.png", w=1000, units="px", tree_style=ts)
-
-    
-    print(f"Tree saved to {output_file}_ete.png")
-
-
 def save_tree(tree, output_file):
-    # save plot
-    # plt.figure(figsize=(10, 7))
-    # Phylo.draw(tree)
-    # plt.savefig(output_file + ".png")
-    # plt.close()
-    # print(f"Tree saved to {output_file}.png")
-
     # save newick
     with open(output_file + ".newick", "w") as f:
         Phylo.write(tree, f, "newick")
         print(f"Tree saved to {output_file}.newick")
-
-    # save ete3 plot
-    save_ete_tree(tree.format("newick"), output_file)
-
 
 def read_newick(filename):
     with open(filename, 'r') as file:
@@ -104,18 +62,15 @@ def read_newick(filename):
     tree = Phylo.read(filename, 'newick')
     return tree
 
-
 def main(input_file, output_file):
-    if input_file.endswith('.phy'):
-        labels, matrix = read_phy(input_file)
-        tree = construct_upgma_tree(labels, matrix)
-    elif input_file.endswith('.newick'):
-        tree = read_newick(input_file)
-    else:
+    if not input_file.endswith('.phy'):
         raise ValueError("Unsupported file format. Please provide a .phy or .newick file.")
     
-    save_tree(tree, output_file)
-
+    labels, matrix = read_phy(input_file)
+    tree1 = construct_upgma_tree(labels, matrix)
+    save_tree(tree1, output_file+".upgma")
+    tree2 = construct_nj_tree(labels, matrix)
+    save_tree(tree2, output_file+".nj")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Construct a phylogenetic tree using UPGMA and save it as an image and Newick file.")

@@ -1,0 +1,6 @@
+/path/to/genome1.fasta
+/path/to/genome2.fasta
+/path/to/genome3.fasta
+/path/to/genome4.fasta
+/path/to/genome5.fasta
+/path/to/genome6.fasta

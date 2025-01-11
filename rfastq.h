@@ -1,20 +1,15 @@
 #ifndef RFASTQ_H
 #define RFASTQ_H
 
-#include <cstdint>
-#include <thread>
-#include <mutex>
-#include <vector>
-#include <iostream>
-#include <string>
-#include <sstream>
 #include "args.h"
+#include "utils.h"
+#include "tpool.h"
 #include "lps.h"
-#include "similarity_metrics.h"
-#include "helper.h"
-#include "utils/GzFile.hpp"
-#include "fileio.h"
-
+#include <htslib/kseq.h>
+#include <sys/stat.h>
+#include <zlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 /**
  * @brief Reads multiple FASTQ files concurrently using a pool of threads.
@@ -25,42 +20,43 @@
  * a FASTQ file using the `read_fastq` function, which operates on the provided 
  * thread arguments and shared program settings. 
  * 
- * @param thread_arguments A reference to a vector of `targs` structures 
- *        representing the arguments specific to each thread.
+ * @param genome_arguments A reference to a vector of `gargs` structures 
+ *        representing the arguments specific to each genome.
  * @param program_arguments A constant reference to a `pargs` structure 
  *        representing the global program arguments.
- * 
- * @details 
- * - The function uses a pool of threads, limiting the number of active threads 
- *   based on `program_arguments.threadNumber`. 
- * - Threads are launched until the maximum thread limit is reached, and once a 
- *   thread finishes its work, it is joined and removed from the active thread pool.
- * - The function continues to launch new threads until all FASTQ files in 
- *   `thread_arguments` have been processed.
- * - Once all threads are launched, the function ensures that all threads are 
- *   joined before exiting, preventing any orphan threads from continuing execution.
  */
-void read_fastqs( std::vector<struct targs>& thread_arguments, const struct pargs& program_arguments );
-
+void read_fastqs(struct gargs *genome_arguments, struct pargs *program_arguments);
 
 /**
  * @brief Processes a genome file to extract LCP cores using multiple threads.
  *
- * This function reads genomic sequences from a specified file and distributes the processing
- * tasks among several worker threads. Each thread computes LCP cores for the sequences at a
- * given LCP level and aggregates these cores into a shared vector. The function tracks the
- * total number of reads processed and their combined length. It ensures efficient and
- * thread-safe handling of genomic data, leveraging parallel processing to enhance performance.
+ * This function reads genomic sequences from a specified file and computes LCP cores 
+ * for the sequences at a given LCP level and aggregates these cores into a shared array. 
+ * The function tracks the total number of reads processed and their combined length. 
+ * It ensures efficient and thread-safe handling of genomic data, leveraging parallel 
+ * processing to enhance performance.
  *
- * @param filename Path to the input file containing genomic sequences.
- * @param infile Reference to an open GzFile object for reading the input file.
- * @param lcp_level The depth of LCP analysis for extracting cores from sequences.
- * @param cores A reference to a shared vector where extracted LCP cores are aggregated.
- * @param read_count Reference to a variable that will hold the total number of processed reads.
- * @param total_length Reference to a variable that will hold the combined length of all reads.
- * @param thread_number The number of worker threads to use for processing.
+ * @param args A reference to the `gargs` structure that contains the genome-specific 
+ *        arguments, including the input FASTQ file name, the output data structures.
  */
-void read_fastq( struct targs& arguments, const struct pargs program_arguments );
+void read_fastq(void *arg);
 
+/**
+ * @brief Processes a DNA sequence for both forward and reverse complement strands.
+ *
+ * This function processes a given DNA sequence in both its forward and reverse 
+ * complement forms. It initializes the `lps` structure for both strands, deepens 
+ * the `lps` structure based on the specified LCP level, and saves the processed 
+ * result if the `write_lcpt` flag is set. After processing both strands, the 
+ * allocated memory for the `lps` structures is freed.
+ *
+ * @param sequence A pointer to the DNA sequence to be processed.
+ * @param seq_size The length of the DNA sequence.
+ * @param capacity The pointer to the capacity value of the cores array.
+ * @param genome_arguments Pointer to the genome arguments structure, which 
+ *        contains settings such as the LCP level and whether to save results.
+ * @param out The output file pointer to save the processed results.
+ */
+void process_read(char *sequence, size_t seq_size, uint64_t *capacity, struct gargs *genome_arguments, FILE *out);
 
 #endif
