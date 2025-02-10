@@ -61,14 +61,14 @@ double calcDiceSim(uint64_t interSize, uint64_t size1, uint64_t size2);
 /**
  * @brief Calculates the Hamming distance from Dice similarity.
  * 
- * This function computes the Hamming distance using the formula:
- * Hamming Distance = 1 - (Dice Similarity)^(1/avgLen)
+ * This function computes the (approx) Hamming distance using the formula:
+ * Hamming Distance = 1 - (Jaccard Similarity)^(1/avgLen)
  * 
- * @param diceSimm The Dice similarity value (range: 0 to 1).
+ * @param jaccardSim The Jaccard similarity value (range: 0 to 1).
  * @param avgLen   The average length (e.g., k-mer size).
  * @return The computed Hamming distance.
  */
-double calcHammDist(double diceSim, double avgLen);
+double calcHammDist(double jaccardSim, double avgLen);
 
 /**
  * @brief Applies the Jukes-Cantor correction to a Hamming distance.

@@ -142,6 +142,7 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
         exit(1);
     }
 
+    int apply_filter;
     uint32_t min_cc;
     uint32_t max_cc;
 
@@ -149,17 +150,20 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
         program_arguments->mode = FA;
         min_cc = 0;
         max_cc = UINT32_MAX;
+        apply_filter = 0;
     } else if (strcmp(argv[1], "fq") == 0) {
         program_arguments->mode = FQ;
         min_cc = 15;
         max_cc = 256;
+        apply_filter = 1;
     } else if (strcmp(argv[1], "ld") == 0) {
         program_arguments->mode = LOAD;
         min_cc = 0;
         max_cc = UINT32_MAX;
+        apply_filter = 0;
     } else {
         log1(ERROR, "Invalid program mode '%s'", argv[1]);
-        printUsage2(program_arguments->mode);
+        printUsage();
         exit(EXIT_FAILURE);
     }
 
@@ -219,15 +223,19 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
                 break;
             case 1: // --min-cc
                 min_cc = (uint32_t)strtol(optarg, &endptr, 10);
+                apply_filter = 1;
                 break;
             case 2: // --min-cc-file
                 filename_min_cc = optarg;
+                apply_filter = 1;
                 break;
             case 3: // --max-cc
                 max_cc = (uint32_t)strtol(optarg, &endptr, 10);
+                apply_filter = 1;
                 break;
             case 4: // --max-cc-file
                 filename_max_cc = optarg;
+                apply_filter = 1;
                 break;
             case 5: // --set
                 sct = SET;
@@ -259,6 +267,7 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     }
 
     for (int i=0; i<program_arguments->number_of_genomes; i++) {
+        (*genome_arguments)[i].apply_filter = apply_filter;
         (*genome_arguments)[i].min_cc = min_cc;
         (*genome_arguments)[i].max_cc = max_cc;
         (*genome_arguments)[i].inFileName = NULL;
@@ -418,7 +427,11 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
     if ((*genome_arguments)[0].verbose) {
         for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            log1(INFO, "in: %s, short: %s, out: %s, min-cc %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
+            if ((*genome_arguments)[i].apply_filter) {
+                log1(INFO, "in: %s, short: %s, out: %s, min-cc %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
+            } else {
+                log1(INFO, "in: %s, short: %s, out: %s", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName);
+            }
         }
     }
 }

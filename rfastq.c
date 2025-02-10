@@ -85,12 +85,21 @@ void read_fastq(void *arg) {
         fclose(out);
     }
 
+    // log ending of reading fasta
+    if (genome_arguments->verbose) {
+        pthread_mutex_lock(&console_mutex_rfastq);
+        log1(INFO, "Thread ID: %ld ended reading %s, size: %ld", pthread_self(), genome_arguments->inFileName, genome_arguments->cores_len);
+        pthread_mutex_unlock(&console_mutex_rfastq);
+    }
+
     // sort and filter the cores
     genSign(genome_arguments, genome_arguments->sct);
 
     // log ending of processing fasta
     if (genome_arguments->verbose) {
+        pthread_mutex_lock(&console_mutex_rfastq);
         log1(INFO, "Thread ID: %ld ended processing %s, size: %ld", pthread_self(), genome_arguments->inFileName, genome_arguments->cores_len);
+        pthread_mutex_unlock(&console_mutex_rfastq);
     }
 }
 

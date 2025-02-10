@@ -41,12 +41,12 @@ double calcDiceSim(uint64_t interSize, uint64_t size1, uint64_t size2) {
     return 2 * (double)interSize / ((double)size1+(double)size2);
 }
 
-double calcHammDist(double diceSimm, double avgLen) {
-    return 1 - pow(diceSimm, 1.0/avgLen);
+double calcHammDist(double jaccardSim, double avgLen) {
+    return 1 - pow(jaccardSim, 1.0/avgLen);
 }
 
 double calcJukesCantorCor(double hammingDist) {
-    return -3.0/4.0 * log(1-hammingDist * 3.0/4.0);
+    return - 3.0/4.0 * log(1 - hammingDist * 4.0/3.0);
 }
 
 void calcDistances(const struct gargs *genome_arguments, const struct pargs* program_arguments) {
@@ -71,20 +71,21 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
             size_t interSize, unionSize;
             calcUISize(&(genome_arguments[i]), &(genome_arguments[j]), &interSize, &unionSize);
 
-            double diceSim = 1.0 - calcDiceSim(interSize, genome_arguments[i].cores_len, genome_arguments[j].cores_len);
-            double jaccardSim = 1.0 - calcJaccardSim(interSize, unionSize);
+            double diceDist = 1.0 - calcDiceSim(interSize, genome_arguments[i].cores_len, genome_arguments[j].cores_len);
+            double jaccardDist = 1.0 - calcJaccardSim(interSize, unionSize);
+            
             double avg_len = (genome_arguments[i].total_len+genome_arguments[j].total_len)/(genome_arguments[i].cores_len+genome_arguments[j].cores_len);
-            double jukesCantorSim = calcHammDist(diceSim, avg_len);
-            jukesCantorSim = calcJukesCantorCor(jukesCantorSim);
+            double jukesCantorDist = calcHammDist(1.0 - jaccardDist, avg_len);
+            jukesCantorDist = calcJukesCantorCor(jukesCantorDist);
 
-            dice[i][j] = diceSim;
-            jaccard[i][j] = jaccardSim;
-            jukes_cantor[i][j] = jukesCantorSim;
+            dice[i][j] = diceDist;
+            jaccard[i][j] = jaccardDist;
+            jukes_cantor[i][j] = jukesCantorDist;
 
             // set values to transposed locations
-            dice[j][i] = diceSim;
-            jaccard[j][i] = jaccardSim;
-            jukes_cantor[j][i] = jukesCantorSim;
+            dice[j][i] = diceDist;
+            jaccard[j][i] = jaccardDist;
+            jukes_cantor[j][i] = jukesCantorDist;
         }
     }
 
@@ -96,19 +97,19 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
     char *program_type = genome_arguments[0].sct == SET ? "set" : "vec";
     FILE *dice_out, *jaccard_out, *jukes_cantor_out;
     char filename_buffer[256];
-    if (snprintf(filename_buffer, 256, "%s.%s.%s%03d.phy", program_arguments->prefix, program_type, "dice.lvl", lcp_level) < 0) {
+    if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_arguments->prefix, program_type, "dice.lvl", lcp_level) < 0) {
         log1(ERROR, "Filename buffer for dice overflow.");
         exit(EXIT_FAILURE);
     }
     dice_out = fopen(filename_buffer, "w");
 
-    if (snprintf(filename_buffer, 256, "%s.%s.%s%03d.phy", program_arguments->prefix, program_type, "jaccard.lvl", lcp_level) < 0) {
+    if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_arguments->prefix, program_type, "jaccard.lvl", lcp_level) < 0) {
         log1(ERROR, "Filename buffer for jaccard overflow.");
         exit(EXIT_FAILURE);
     }
     jaccard_out = fopen(filename_buffer, "w");
 
-    if (snprintf(filename_buffer, 256, "%s.%s.%s%03d.phy", program_arguments->prefix, program_type, "jc.lvl", lcp_level) < 0) {
+    if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_arguments->prefix, program_type, "jc.lvl", lcp_level) < 0) {
         log1(ERROR, "Filename buffer for jc overflow.");
         exit(EXIT_FAILURE);
     }
@@ -193,43 +194,45 @@ void genSign(struct gargs *genome_arguments, sim_calculation_type mode) {
 
     simple_core *cores = genome_arguments->cores;
     uint64_t len = genome_arguments->cores_len;
-    double totalLen = genome_arguments->total_len;
-    uint32_t min_cc = genome_arguments->min_cc;
-    uint32_t max_cc = genome_arguments->max_cc;
+    double total_len = genome_arguments->total_len;
 
     quicksort(cores, 0, len);
     
-    uint64_t index = 0;
-    uint64_t i = 0;
+    if (genome_arguments->apply_filter) {
+        uint32_t min_cc = genome_arguments->min_cc;
+        uint32_t max_cc = genome_arguments->max_cc;
+        uint64_t index = 0;
+        uint64_t i = 0;
 
-    while (i<len) {
-        uint64_t freq = 1;
+        while (i<len) {
+            uint64_t freq = 1;
 
-        for (uint64_t j=i+1; j<len && cores[i]==cores[j]; j++, freq++);
+            for (uint64_t j=i+1; j<len && cores[i]==cores[j]; j++, freq++);
 
-        if (min_cc<=freq && freq<=max_cc) {
-            memcpy(&(cores[index]), &(cores[i]), freq * sizeof(simple_core));
-            index += freq;
+            if (min_cc<=freq && freq<=max_cc) {
+                memcpy(&(cores[index]), &(cores[i]), freq * sizeof(simple_core));
+                index += freq;
+            }
+
+            i += freq;
         }
-
-        i += freq;
+        genome_arguments->cores_len = index;
+        len = index;
     }
     
     if (mode == VECTOR) {
-        genome_arguments->cores_len = index;
         return;
     }
 
-    len = index;
-    index = 0;
-    i=1;
-    totalLen += cores[0] & 0xFFFFFFFF;
+    uint64_t index = 0;
+    uint64_t i=1;
+    total_len += cores[0] & 0xFFFFFFFF;
 
     while (i<len) {
         if (cores[index] != cores[i]) {
             index++;
             cores[index] = cores[i];
-            totalLen += cores[i] & 0xFFFFFFFF;
+            total_len += cores[i] & 0xFFFFFFFF;
         }
         i++;
     }
@@ -249,7 +252,7 @@ void genSign(struct gargs *genome_arguments, sim_calculation_type mode) {
     }
 
     genome_arguments->cores_len = index; 
-    genome_arguments->total_len = totalLen;
+    genome_arguments->total_len = total_len;
 }
 
 // ---------------------------------------------------------------------------------
@@ -320,7 +323,8 @@ void free_args(struct gargs * genome_arguments, struct pargs * program_arguments
 
     for (int i=0; i<program_arguments->number_of_genomes; i++) {
         if (genome_arguments[i].cores_len) {
-            free(genome_arguments[i].cores);
+            if (genome_arguments[i].cores_len)
+                free(genome_arguments[i].cores);
             genome_arguments[i].cores_len = 0;
         }
     }

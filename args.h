@@ -36,6 +36,7 @@ struct pargs {
 };
 
 struct gargs {
+    int apply_filter;
     uint32_t min_cc;
     uint32_t max_cc;
     char *inFileName;
