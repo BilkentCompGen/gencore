@@ -1,7 +1,7 @@
 #include "init.h"
 
 void printUsage() {
-    printf("Usage: ./gencore [PROGRAM] [OPTIONS]\n\n");
+    printf("Usage: ./gencore [PROGRAM] [OPTIONS]\n");
     printf("[PROGRAM]: \n");
     printf("\tfa:   Processing assembled genomes.\n");
     printf("\tfq:   Processing genomes' reads.\n");
@@ -9,33 +9,33 @@ void printUsage() {
 }
 
 void printFaUsage() {
-    printf("Usage: ./gencore fa [OPTIONS]\n\n");
+    printf("Usage: ./gencore fa [OPTIONS]\n");
     printf("Options:\n");
-    printf("\t-i [filename]   The file contains filenames of genomes.\n\n");
-    printf("\t-l [num]        Lcp-level. [Default: 4]\n\n");
-    printf("\t-t [num]        Number of threads. [Default: 8]\n\n");
-    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 1]\n\n");
-    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT32_MAX]\n\n");
-    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n\n");
-    printf("\t-o [filename]   Store cores.\n\n");
-    printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n\n");
-    printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n\n");
+    printf("\t-i [filename]   The file contains filenames of genomes.\n");
+    printf("\t-l [num]        Lcp-level. [Default: 5]\n");
+    printf("\t-t [num]        Number of threads. [Default: 8]\n");
+    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 1]\n");
+    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT32_MAX]\n");
+    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n");
+    printf("\t-o [filename]   Store cores.\n");
+    printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n");
+    printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n");
     printf("\t-v              Verbose. [Default: false]\n\n");
 }
 
 void printFqUsage() {
-    printf("Usage: ./gencore fa [OPTIONS]\n\n");
+    printf("Usage: ./gencore fq [OPTIONS]\n");
     printf("Options:\n");
-    printf("\t-i [filename]   The file contains filenames of genomes.\n\n");
-    printf("\t-l [num]        Lcp-level. [Default: 4]\n\n");
-    printf("\t-t [num]        Number of threads. [Default: 8]\n\n");
-    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 15]\n\n");
-    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: 256]\n\n");
-    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n\n");
-    printf("\t-o [filename]   Store cores.\n\n");
-    printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n\n");
-    printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n\n");
-    printf("\t-v              Verbose. [Default: false]\n\n");
+    printf("\t-i [filename]   The file contains filenames of genomes.\n");
+    printf("\t-l [num]        Lcp-level. [Default: 5]\n");
+    printf("\t-t [num]        Number of threads. [Default: 8]\n");
+    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 32]\n");
+    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT32_MAX]\n");
+    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n");
+    printf("\t-o [filename]   Store cores.\n");
+    printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n");
+    printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n");
+    printf("\t-v              Verbose. [Default: false]\n");
 }
 
 void printUsage2(program_mode mode) {
@@ -153,8 +153,8 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
         apply_filter = 0;
     } else if (strcmp(argv[1], "fq") == 0) {
         program_arguments->mode = FQ;
-        min_cc = 15;
-        max_cc = 256;
+        min_cc = 32;
+        max_cc = UINT32_MAX;
         apply_filter = 1;
     } else if (strcmp(argv[1], "ld") == 0) {
         program_arguments->mode = LOAD;
@@ -188,7 +188,7 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     char *filename_names = NULL;
     char *filename_outputs = NULL;
     sim_calculation_type sct = SET;
-    int lcp_level = 4;
+    int lcp_level = 5;
     int write_lcpt = 0;
     int verbose = 0;
 
@@ -249,7 +249,7 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     }
 
     if (filename_inputs == NULL) {
-        log1(ERROR, "Please provide input function");
+        log1(ERROR, "Please provide input files.");
         printUsage2(program_arguments->mode);
         exit(EXIT_FAILURE);
     }
@@ -428,7 +428,7 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     if ((*genome_arguments)[0].verbose) {
         for (int i=0; i<program_arguments->number_of_genomes; i++) {
             if ((*genome_arguments)[i].apply_filter) {
-                log1(INFO, "in: %s, short: %s, out: %s, min-cc %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
+                log1(INFO, "in: %s, short: %s, out: %s, min-cc: %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
             } else {
                 log1(INFO, "in: %s, short: %s, out: %s", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName);
             }

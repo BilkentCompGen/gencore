@@ -7,6 +7,9 @@
 #include "lps.h"
 #include <htslib/kseq.h>
 #include <sys/stat.h>
+#include <sys/types.h>
+#include <dirent.h>
+#include <time.h>
 #include <zlib.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,6 +29,21 @@
  *        representing the global program arguments.
  */
 void read_fastqs(struct gargs *genome_arguments, struct pargs *program_arguments);
+
+/**
+ * @brief Processes a genome files to extract LCP cores using multiple threads.
+ *
+ * This function reads genomic sequences from a files found in specified directory and
+ * computes LCP cores for the sequences at a given LCP level and aggregates these cores 
+ * into a shared array. Then, it combined the cores of each file into single array. 
+ * The function tracks the total number of reads processed and their combined length. 
+ * It ensures efficient and thread-safe handling of genomic data, leveraging parallel 
+ * processing to enhance performance.
+ *
+ * @param args A reference to the `gargs` structure that contains the genome-specific 
+ *        arguments, including the input FASTQ file name, the output data structures.
+ */
+void process_dir_fastq(void *arg);
 
 /**
  * @brief Processes a genome file to extract LCP cores using multiple threads.
@@ -55,8 +73,7 @@ void read_fastq(void *arg);
  * @param capacity The pointer to the capacity value of the cores array.
  * @param genome_arguments Pointer to the genome arguments structure, which 
  *        contains settings such as the LCP level and whether to save results.
- * @param out The output file pointer to save the processed results.
  */
-void process_read(char *sequence, size_t seq_size, uint64_t *capacity, struct gargs *genome_arguments, FILE *out);
+void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, struct gargs *genome_arguments);
 
 #endif

@@ -4,6 +4,7 @@
 #include "args.h"
 #include "lps.h"
 #include <stdio.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -112,10 +113,9 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
  *
  * @param genome_arguments A reference to a vector of `gargs` structures
  *        representing the arguments specific to each genome which is needed for cores.
- * @param mode A mode that is needed to process cores based on set-based or vector-based 
- *        approach.
+ * @param apply_filter A boolena integer that decides whether to apply filter or not.
  */
-void genSign(struct gargs *genome_arguments, sim_calculation_type mode);
+void genSign(struct gargs *genome_arguments, int apply_filter);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -143,6 +143,26 @@ void save(FILE *out, struct lps *str);
  * @param out The output file pointer to save processed results.
  */
 void done(FILE *out);
+
+/**
+ * @brief Makes an estimation about LCP cores that will be computed for give file.
+ * 
+ * This function returns number of cores that will be generated with LCP for all reads
+ * in given fastq file.
+ *
+ * @param filename The input fastq filename.
+ * @param lcp_level The lcp level that reads will be processed.
+ * @return The expected number of LCP cores.
+ */
+uint64_t est_core_fq(const char *filename, int lcp_level);
+
+/**
+ * @brief Helper funct that checks the give filename is fq/fastq/fq.gz/fastq.gz
+ * 
+ * @param str File name to be checked
+ * @return 1 if it fastq file, 0 if not
+ */
+int ends_with_fq(const char *str);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -184,5 +204,28 @@ int log1(LogLevel level, const char *format, ...);
  *                          contains the number of genomes.
  */
 void free_args(struct gargs * genome_arguments, struct pargs * program_arguments);
+
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+// MARK: Heap Operations
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+
+/**
+ * @brief Merges sorted arrays efficiently.
+ *
+ * This function merges the sorted arrays into single array efficiently using
+ * min-heap. The heap is set to be fixed-sized, to the number of arrays to be exact.
+ *
+ * @param cores The 2D array that stores sorted arrays
+ * @param size The array that stores sizes of the each array
+ * @param file_count The number of array
+ * @param min_cc A minimum core count threshold so the core will be stored.
+ * @param max_cc A maximum core count threshold so the core will not be descared.
+ * @param out_total_size The total number of element resulted in merging.
+ * @param out_total_len The total length of the LCP cores.
+ * @return Merged array
+ */
+uint64_t *merge_sorted_arrays(simple_core **cores, uint64_t *sizes, size_t file_count, uint32_t min_cc, uint32_t max_cc, uint64_t *out_total_size, double *out_total_len);
 
 #endif

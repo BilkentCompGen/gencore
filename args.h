@@ -2,12 +2,16 @@
 #define ARGS_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #define MAGIC_LCP_FA_CONSTANT 2.20  // the constant reduction of cores is 2.33 but to be 
                                     // safe, it is selected lower than that
 
 #define MAGIC_LCP_FQ_CONSTANT 2.00  // the constant reduction of cores is 1.5 but to be 
                                     // more efficient, it is selected higher than that
+
+#define INITIAL_SEQUENCE_SIZE 300000000
+#define SEPERATOR '$'
 
 typedef enum {
     INFO,
@@ -51,5 +55,18 @@ struct gargs {
     int write_lcpt; // 1: true, 0: false
     int verbose;  // 1: true, 0: false
 };
+
+typedef struct {
+    uint64_t value;
+    size_t array_index;
+    size_t element_index;
+} heap_node;
+
+typedef struct {
+    heap_node *data;
+    size_t size;
+    size_t capacity;
+} min_heap;
+
 
 #endif

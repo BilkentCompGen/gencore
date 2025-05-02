@@ -68,7 +68,7 @@ void read_lcpt(void *arg) {
     }
 
     // sort and filter the cores
-    genSign(genome_arguments, genome_arguments->sct);
+    genSign(genome_arguments, genome_arguments->apply_filter);
 
     // log ending of processing fasta
     if (genome_arguments->verbose) {

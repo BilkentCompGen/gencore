@@ -120,10 +120,10 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
         fprintf(dice_out, "%d\n", program_arguments->number_of_genomes);
 
         for (int i = 0; i < program_arguments->number_of_genomes; i++) {
-            fprintf(dice_out, "%10s", genome_arguments[i].shortName);
+            fprintf(dice_out, "%-10s", genome_arguments[i].shortName);
 
             for (int j = 0; j < program_arguments->number_of_genomes; j++) {
-                fprintf(dice_out, " %.15f", dice[i][j]);
+                fprintf(dice_out, " %-.15f", dice[i][j]);
             }
             fprintf(dice_out, "\n");
         }
@@ -135,10 +135,10 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
         fprintf(jaccard_out, "%d\n", program_arguments->number_of_genomes);
 
         for (int i = 0; i < program_arguments->number_of_genomes; i++) {
-            fprintf(jaccard_out, "%10s", genome_arguments[i].shortName);
+            fprintf(jaccard_out, "%-10s", genome_arguments[i].shortName);
 
             for (int j = 0; j < program_arguments->number_of_genomes; j++) {
-                fprintf(jaccard_out, " %.15f", jaccard[i][j]);
+                fprintf(jaccard_out, " %-.15f", jaccard[i][j]);
             }
             fprintf(jaccard_out, "\n");
         }
@@ -150,10 +150,10 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
         fprintf(jukes_cantor_out, "%d\n", program_arguments->number_of_genomes);
 
         for (int i = 0; i < program_arguments->number_of_genomes; i++) {
-            fprintf(jukes_cantor_out, "%10s", genome_arguments[i].shortName);
+            fprintf(jukes_cantor_out, "%-10s", genome_arguments[i].shortName);
 
             for (int j = 0; j < program_arguments->number_of_genomes; j++) {
-                fprintf(jukes_cantor_out, " %.15f", jukes_cantor[i][j]);
+                fprintf(jukes_cantor_out, " %-.15f", jukes_cantor[i][j]);
             }
             fprintf(jukes_cantor_out, "\n");
         }
@@ -190,7 +190,7 @@ void quicksort(simple_core *array, int low, int high) {
     }
 }
 
-void genSign(struct gargs *genome_arguments, sim_calculation_type mode) {
+void genSign(struct gargs *genome_arguments, int apply_filter) {
 
     simple_core *cores = genome_arguments->cores;
     uint64_t len = genome_arguments->cores_len;
@@ -198,7 +198,7 @@ void genSign(struct gargs *genome_arguments, sim_calculation_type mode) {
 
     quicksort(cores, 0, len);
     
-    if (genome_arguments->apply_filter) {
+    if (apply_filter) {
         uint32_t min_cc = genome_arguments->min_cc;
         uint32_t max_cc = genome_arguments->max_cc;
         uint64_t index = 0;
@@ -220,7 +220,7 @@ void genSign(struct gargs *genome_arguments, sim_calculation_type mode) {
         len = index;
     }
     
-    if (mode == VECTOR) {
+    if (genome_arguments->sct == VECTOR) {
         return;
     }
 
@@ -278,6 +278,35 @@ void done(FILE *out) {
     fwrite(&isDone, sizeof(int), 1, out);
 }
 
+uint64_t est_core_fq(const char *filename, int lcp_level) {
+
+    struct stat st;
+
+    if (stat(filename, &st) != 0) {
+        log1(ERROR, "Error getting file size of %s", filename);
+        return 0;
+    }
+    uint64_t file_size = st.st_size;
+
+    uint64_t estimated_uncompressed_size = file_size; // default assumption
+    if (strstr(filename, ".gz")) {
+        // estimate uncompressed size using typical compression ratio (~4:1 for FASTQ)
+        estimated_uncompressed_size = file_size * 4;
+    }
+
+    uint64_t estimated_bp_count = estimated_uncompressed_size / 2;
+    return (uint64_t)(estimated_bp_count / pow(MAGIC_LCP_FQ_CONSTANT, lcp_level));
+}
+
+int ends_with_fq(const char *str) {
+    size_t str_len = strlen(str);
+
+    return  (str_len >= 3 && strcmp(str + str_len - 3, ".fq") == 0) || 
+            (str_len >= 6 && strcmp(str + str_len - 6, ".fastq") == 0) || 
+            (str_len >= 6 && strcmp(str + str_len - 6, ".fq.gz") == 0) || 
+            (str_len >= 9 && strcmp(str + str_len - 9, ".fastq.gz") == 0);
+}
+
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 // MARK: Logging
@@ -330,4 +359,137 @@ void free_args(struct gargs * genome_arguments, struct pargs * program_arguments
     }
 
     free(genome_arguments);
+}
+
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+// MARK: Heap Operations
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+
+void heap_swap(heap_node *a, heap_node *b) {
+    heap_node temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+void heapify_up(min_heap *heap, size_t idx) {
+    while (idx > 0) {
+        size_t parent = (idx - 1) / 2;
+        if (heap->data[parent].value <= heap->data[idx].value)
+            break;
+        heap_swap(&heap->data[parent], &heap->data[idx]);
+        idx = parent;
+    }
+}
+
+void heapify_down(min_heap *heap, size_t idx) {
+    while (2 * idx + 1 < heap->size) {
+        size_t left = 2 * idx + 1;
+        size_t right = 2 * idx + 2;
+        size_t smallest = idx;
+
+        if (left < heap->size && heap->data[left].value < heap->data[smallest].value)
+            smallest = left;
+        if (right < heap->size && heap->data[right].value < heap->data[smallest].value)
+            smallest = right;
+        if (smallest == idx) break;
+
+        heap_swap(&heap->data[idx], &heap->data[smallest]);
+        idx = smallest;
+    }
+}
+
+void heap_push(min_heap *heap, heap_node node) {
+    if (heap->size == heap->capacity) {
+        heap->capacity *= 2;
+        heap->data = realloc(heap->data, heap->capacity * sizeof(heap_node));
+    }
+    heap->data[heap->size++] = node;
+    heapify_up(heap, heap->size - 1);
+}
+
+heap_node heap_pop(min_heap *heap) {
+    heap_node min = heap->data[0];
+    heap->data[0] = heap->data[--heap->size];
+    heapify_down(heap, 0);
+    return min;
+}
+
+uint64_t *merge_sorted_arrays(simple_core **cores, uint64_t *sizes, size_t file_count, uint32_t min_cc, uint32_t max_cc, uint64_t *out_total_size, double *out_total_len) {
+    min_heap heap = (min_heap){malloc(file_count * sizeof(heap_node)), 0, file_count};
+    uint64_t total_size = 0;
+    for (size_t i = 0; i < file_count; ++i)
+        total_size += sizes[i];
+
+    uint64_t *result = malloc(total_size * sizeof(uint64_t));
+    size_t result_index = 0;
+
+    for (size_t i = 0; i < file_count; ++i) {
+        if (sizes[i] > 0) {
+            heap_push(&heap, (heap_node){cores[i][0], i, 0});
+        }
+    }
+
+    while (heap.size > 0) {
+        heap_node min = heap_pop(&heap);
+        result[result_index++] = min.value;
+
+        size_t next_idx = min.element_index + 1;
+        if (next_idx < sizes[min.array_index]) {
+            heap_push(&heap, (heap_node){
+                cores[min.array_index][next_idx],
+                min.array_index,
+                next_idx
+            });
+        }
+    }
+
+    free(heap.data);
+
+    // apply filtering
+    uint64_t index = 0;
+    uint64_t i = 0;
+
+    while (i<total_size) {
+        uint64_t freq = 1;
+
+        for (uint64_t j=i+1; j<total_size && result[i]==result[j]; j++, freq++);
+
+        if (min_cc<=freq && freq<=max_cc) {
+            memcpy(&(result[index]), &(result[i]), freq * sizeof(simple_core));
+            index += freq;
+        }
+
+        i += freq;
+    }
+    total_size = index;
+
+    // remove duplicates
+    if (index) {
+        index = 0;
+        i=1;
+        double total_len = result[0] & 0xFFFFFFFF;
+    
+        while (i<total_size) {
+            if (result[index] != result[i]) {
+                index++;
+                result[index] = result[i];
+                total_len += result[i] & 0xFFFFFFFF;
+            }
+            i++;
+        }
+        *out_total_len = total_len;
+        *out_total_size = index;
+    } else {
+        *out_total_len = 0;
+        *out_total_size = 0;
+    }
+
+    for (size_t i = 0; i < file_count; i++) {
+        if (cores[i] != NULL) free(cores[i]);
+    }
+    free(cores);
+    free(sizes);
+    return result;
 }

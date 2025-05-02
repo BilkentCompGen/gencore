@@ -19,11 +19,13 @@ void read_fastas(struct gargs *genome_arguments, struct pargs *program_arguments
 
 void read_fasta(void *arg) {
 
+    time_t start, point1, point2;
+    time(&start);
+
     struct gargs *genome_arguments = (struct gargs *)arg;
 
     // open fasta file
     FILE *in = fopen(genome_arguments->inFileName, "r");
-
     if (in == NULL) {
         log1(ERROR, "Error opening file %s", genome_arguments->inFileName);
         return;
@@ -31,21 +33,20 @@ void read_fasta(void *arg) {
 
     fseek(in, 0, SEEK_END); // seek to end of file
     uint64_t size = ftell(in); // get current file pointer
-    fseek(in, 0, SEEK_SET); // seek back to beginning of fil
+    fseek(in, 0, SEEK_SET); // seek back to beginning of fill
 
     uint64_t estimated_core_size = (int)(size / pow(MAGIC_LCP_FA_CONSTANT, genome_arguments->lcp_level));
     
     genome_arguments->cores = (simple_core*)malloc(estimated_core_size * sizeof(simple_core));
-
     if (genome_arguments->cores == NULL) {
         pthread_mutex_lock(&console_mutex_rfasta);
         log1(INFO, "Thread ID: %ld couldn't allocate memory of size %ld for cores", pthread_self(), size);
         pthread_mutex_unlock(&console_mutex_rfasta);
+        return;
     }
 
     // create file for writing cores
     FILE *out = NULL;
-
     if (genome_arguments->write_lcpt) {
         out = fopen(genome_arguments->inFileName, "wb");
         if (out == NULL) {
@@ -56,7 +57,7 @@ void read_fasta(void *arg) {
 
     if (genome_arguments->verbose) {
         pthread_mutex_lock(&console_mutex_rfasta);
-        log1(INFO, "Thread ID: %ld, in: %s, cc: %ld", pthread_self(), genome_arguments->inFileName, estimated_core_size);
+        log1(INFO, "Thread - in: %s, cc: %ld", genome_arguments->inFileName, estimated_core_size);
         pthread_mutex_unlock(&console_mutex_rfasta);
     }
 
@@ -73,7 +74,6 @@ void read_fasta(void *arg) {
     char line[1024];
 
     while (fgets(line, sizeof(line), in)) {
-
         line[strcspn(line, "\n")] = '\0';
 
         if (line[0] == '>') {
@@ -84,7 +84,7 @@ void read_fasta(void *arg) {
         } else {
             size_t line_len = strlen(line);
 
-            while (sequence_size + line_len >= sequence_capacity) {
+            if (sequence_size + line_len >= sequence_capacity) {
                 sequence_capacity = (size_t)(sequence_capacity * 1.5);
                 sequence = realloc(sequence, sequence_capacity);
                 if (!sequence) {
@@ -111,56 +111,71 @@ void read_fasta(void *arg) {
         fclose(out);
     }
 
-    // log ending of reading fasta
-    if (genome_arguments->verbose) {
-        pthread_mutex_lock(&console_mutex_rfasta);
-        log1(INFO, "Thread ID: %ld ended reading %s, size: %ld", pthread_self(), genome_arguments->inFileName, genome_arguments->cores_len);
-        pthread_mutex_unlock(&console_mutex_rfasta);
-    }
+    time(&point1);
+    double diff1 = difftime(point1, start);
 
     // sort and filter the cores
-    genSign(genome_arguments, genome_arguments->sct);
+    genSign(genome_arguments, genome_arguments->apply_filter);
+
+    time(&point2);
+    double diff2 = difftime(point2, point1);
 
     // log ending of processing fasta
     if (genome_arguments->verbose) {
         pthread_mutex_lock(&console_mutex_rfasta);
-        log1(INFO, "Thread ID: %ld ended processing %s, size: %ld", pthread_self(), genome_arguments->inFileName, genome_arguments->cores_len);
+        log1(INFO, "Thread - %s, LCP [%d:%d:%d], gen-sign [%d:%d:%d]", genome_arguments->inFileName, (int)(diff1/3600), (int)(diff1/60), (int)(diff1)%60, (int)(diff2/3600), (int)(diff2/60), (int)(diff2)%60);
         pthread_mutex_unlock(&console_mutex_rfasta);
     }
 }
 
 void process_chrom(char *sequence, size_t seq_size, uint64_t *capacity, struct gargs *genome_arguments, FILE *out) {
-    // struct lps str;
-    // init_lps4(&str, sequence, seq_size, genome_arguments->lcp_level, 10000000);
-    struct lps str;
-    init_lps(&str, sequence, seq_size);
-    lps_deepen(&str, genome_arguments->lcp_level);
 
-    if (genome_arguments->write_lcpt) {
-        save(out, &str);
-    }
+    int valid_chars[256] = {0};
+    valid_chars['A'] = valid_chars['C'] = valid_chars['T'] = valid_chars['G'] = 1;
+    valid_chars['a'] = valid_chars['c'] = valid_chars['t'] = valid_chars['g'] = 1;
+    uint64_t index = 0;
 
-    uint64_t len = genome_arguments->cores_len;
+    while (index < seq_size) {
+        
+        while (index < seq_size && !valid_chars[(unsigned char)sequence[index]]) index++;
 
-    if (*capacity <= len+str.size) {
-        *capacity = *capacity * 1.5;
-        simple_core* temp = (simple_core*)realloc(genome_arguments->cores, *capacity);
-        if (temp == NULL) {
-            log1(ERROR, "Couldn't increase cores array size.");
-            return;
+        if (index == seq_size) break;
+
+        uint64_t end = index;
+        
+        while (end < seq_size && valid_chars[(unsigned char)sequence[end]]) end++;
+
+        struct lps str;
+        init_lps_offset(&str, sequence+index, end-index, index);
+        lps_deepen(&str, genome_arguments->lcp_level);
+
+        if (str.size) {
+            
+            if (genome_arguments->write_lcpt) save(out, &str);
+        
+            uint64_t len = genome_arguments->cores_len;
+
+            if (*capacity <= len+str.size) {
+                *capacity = *capacity * 1.5;
+                simple_core* temp = (simple_core*)realloc(genome_arguments->cores, *capacity);
+                if (temp == NULL) {
+                    log1(ERROR, "Couldn't increase cores array size.");
+                    return;
+                }
+                genome_arguments->cores = temp;
+            }
+        
+            simple_core *cores = genome_arguments->cores;
+        
+            for (int i=0; i<str.size; i++) {
+                cores[len] = ((uint64_t)str.cores[i].label << 32) + (str.cores[i].end-str.cores[i].start);
+                len++;
+            }
+        
+            genome_arguments->cores_len = len;        
         }
-        genome_arguments->cores = temp;
+
+        index = end;
+        free_lps(&str); 
     }
-
-    simple_core *cores = genome_arguments->cores;
-
-    for (int i=0; i<str.size; i++) {
-        cores[len] = ((uint64_t)str.cores[i].label << 32) + (str.cores[i].end-str.cores[i].start);
-        // cores[len] = ((uint64_t)str.cores[i].label);
-        len++;
-    }
-
-    genome_arguments->cores_len = len;
-
-    free_lps(&str);
 }

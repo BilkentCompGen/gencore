@@ -7,7 +7,6 @@
 #include "lps.h"
 #include <stdint.h>
 
-#define INITIAL_SEQUENCE_SIZE 300000000
 
 /**
  * @brief Reads multiple FASTA files concurrently using a pool of threads.

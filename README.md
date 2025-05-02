@@ -73,7 +73,7 @@ For detailed options for each program, see the sections below.
 
 - **`-i [filename]`**: The file containing filenames of genome files (one per line).
 
-- **`-l [num]`**: LCP-level (default: 4).
+- **`-l [num]`**: LCP-level (default: 5).
 
 - **`-t [num]`**: Number of threads (default: 8).
 
@@ -107,7 +107,7 @@ For detailed options for each program, see the sections below.
 
 - **`-i [filename]`**: The file containing filenames of genome read files (one per line).
 
-- **`-l [num]`**: LCP-level (default: 4).
+- **`-l [num]`**: LCP-level (default: 5).
 
 - **`-t [num]`**: Number of threads (default: 8).
 
@@ -182,7 +182,7 @@ The outputs are saved in the specified prefix format, and the following files wi
 
 1) **Dice Distance Matrix**:
 
-  - Filename: `gc.set.dice.lvl4.phy`
+  - Filename: `gc.set.dice.lvl5.phy`
 
   - Formula: $\text{Dice}(A,B) = 1 - \frac{2\times|A\cap B|}{|A|+|B|}$
 
@@ -190,7 +190,7 @@ The outputs are saved in the specified prefix format, and the following files wi
 
 2) **Jaccard Distance Matrix**:
 
-  - Filename: `gc.set.jaccard.lvl4.phy`
+  - Filename: `gc.set.jaccard.lvl5.phy`
 
   - Formula: $\text{Jaccard}(A,B) = 1 - \frac{|A \cap B|}{|A \cup B|}$
   
@@ -198,7 +198,7 @@ The outputs are saved in the specified prefix format, and the following files wi
 
 3) **Jukes-Cantor Correction Matrix**:
 
-  - Filename: `gc.set.jc.lvl4.phy`
+  - Filename: `gc.set.jc.lvl5.phy`
 
   - Formula: This matrix is based on the Dice similarity values and includes corrections using the Jukes-Cantor model. The steps are as follows:
 
@@ -208,7 +208,7 @@ The outputs are saved in the specified prefix format, and the following files wi
       (Where "Average Length" is the average size of cores being compared.)
 
     2. **Apply Jukes-Cantor Correction**:  
-      $\text{Jukes-Cantor}(A,B) = -\frac{3}{4} \log\left(1 - \text{Hamming Distance} \times \frac{3}{4}\right)$
+      $\text{Jukes-Cantor}(A,B) = -\frac{3}{4} \log\left(1 - \text{Hamming Distance} \times \frac{4}{3}\right)$
 
   - Format: The first line contains the number of genomes, followed by a matrix of Jukes-Cantor corrected distances. Each subsequent line starts with the short name of the genome, followed by the corrected distances from that genome to all other genomes. These values are represented as floating-point numbers.
 
@@ -217,10 +217,10 @@ The outputs are saved in the specified prefix format, and the following files wi
 ## Additional Command for Phylogenetic Tree Construction:
 
 ```bash
-python3 phylowizard.py gc.set.dice.lvl4.phy
+python3 phylowizard.py gc.set.dice.lvl5.phy
 ```
 
-The script outputs a Newick format tree files, `gc.set.dice.lvl4.upgma.newick` and `gc.set.dice.lvl4.nj.newick`, which contains the tree structures, constructed with upgma and neighbor joining algorithm, in a textual format that can be used for further analysis or visualization.
+The script outputs a Newick format tree files, `gc.set.dice.lvl5.upgma.newick` and `gc.set.dice.lvl5.nj.newick`, which contains the tree structures, constructed with upgma and neighbor joining algorithm, in a textual format that can be used for further analysis or visualization.
 
 
 ## License
