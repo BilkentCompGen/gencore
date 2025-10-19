@@ -131,12 +131,6 @@ void read_fastq(void *arg) {
         return;
     }
 
-    if (genome_arguments->verbose) {
-        pthread_mutex_lock(&console_mutex_rfastq);
-        log1(INFO, "Thread - in: %s, cc: %ld", genome_arguments->inFileName, estimated_core_size);
-        pthread_mutex_unlock(&console_mutex_rfastq);
-    }
-
     // kseq_t *seq = kseq_init(in);
 
     // while (kseq_read(seq) >= 0) {
@@ -184,7 +178,7 @@ void read_fastq(void *arg) {
     // log ending of processing fastq
     if (genome_arguments->verbose) {
         pthread_mutex_lock(&console_mutex_rfastq);
-        log1(INFO, "Thread - %s, LCP [%d:%d:%d], gen-sign [%d:%d:%d], cc: %lu", genome_arguments->inFileName, (int)(diff1/3600), (int)(diff1/60), (int)(diff1)%60, (int)(diff2/3600), (int)(diff2/60), (int)(diff2)%60, genome_arguments->cores_len);
+        log1(INFO, "Thread - %s, LCP [%d:%d:%d], gen-sign [%d:%d:%d], cc: %lu/%lu", genome_arguments->inFileName, (int)(diff1/3600), (int)(((int)(diff1)%3600)/60), (int)(diff1)%60, (int)(diff2/3600), (int)(((int)(diff2)%3600)/60), (int)(diff2)%60, genome_arguments->cores_len, estimated_core_size);
         pthread_mutex_unlock(&console_mutex_rfastq);
     }
 }

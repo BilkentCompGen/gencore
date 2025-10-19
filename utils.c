@@ -45,6 +45,10 @@ double calcHammDist(double jaccardSim, double avgLen) {
     return 1 - pow(jaccardSim, 1.0/avgLen);
 }
 
+double calcEvolDist(double jaccardSim, double avgLen) {
+    return - log((2.0*jaccardSim)/(1.0+jaccardSim)) / avgLen;
+}
+
 double calcJukesCantorCor(double hammingDist) {
     return - 3.0/4.0 * log(1 - hammingDist * 4.0/3.0);
 }
@@ -56,12 +60,12 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
     // Initialize similarity matrices
     double jaccard[program_arguments->number_of_genomes][program_arguments->number_of_genomes];
     double dice[program_arguments->number_of_genomes][program_arguments->number_of_genomes];
-    double jukes_cantor[program_arguments->number_of_genomes][program_arguments->number_of_genomes];
+    double evol[program_arguments->number_of_genomes][program_arguments->number_of_genomes];
     
     for (int i = 0; i < program_arguments->number_of_genomes; i++) {
         jaccard[i][i] = 0.0;
         dice[i][i] = 0.0;
-        jukes_cantor[i][i]= 0.0;
+        evol[i][i]= 0.0;
     }
 
     // Compute similarity scores
@@ -75,17 +79,16 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
             double jaccardDist = 1.0 - calcJaccardSim(interSize, unionSize);
             
             double avg_len = (genome_arguments[i].total_len+genome_arguments[j].total_len)/(genome_arguments[i].cores_len+genome_arguments[j].cores_len);
-            double jukesCantorDist = calcHammDist(1.0 - jaccardDist, avg_len);
-            jukesCantorDist = calcJukesCantorCor(jukesCantorDist);
+            double evolDist = calcEvolDist(1.0 - jaccardDist, avg_len);
 
             dice[i][j] = diceDist;
             jaccard[i][j] = jaccardDist;
-            jukes_cantor[i][j] = jukesCantorDist;
+            evol[i][j] = evolDist;
 
             // set values to transposed locations
             dice[j][i] = diceDist;
             jaccard[j][i] = jaccardDist;
-            jukes_cantor[j][i] = jukesCantorDist;
+            evol[j][i] = evolDist;
         }
     }
 
@@ -95,7 +98,7 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
     
     // Write outputs to files
     char *program_type = genome_arguments[0].sct == SET ? "set" : "vec";
-    FILE *dice_out, *jaccard_out, *jukes_cantor_out;
+    FILE *dice_out, *jaccard_out, *evol_out;
     char filename_buffer[256];
     if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_arguments->prefix, program_type, "dice.lvl", lcp_level) < 0) {
         log1(ERROR, "Filename buffer for dice overflow.");
@@ -109,11 +112,11 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
     }
     jaccard_out = fopen(filename_buffer, "w");
 
-    if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_arguments->prefix, program_type, "jc.lvl", lcp_level) < 0) {
-        log1(ERROR, "Filename buffer for jc overflow.");
+    if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_arguments->prefix, program_type, "evol.lvl", lcp_level) < 0) {
+        log1(ERROR, "Filename buffer for evol overflow.");
         exit(EXIT_FAILURE);
     }
-    jukes_cantor_out = fopen(filename_buffer, "w");
+    evol_out = fopen(filename_buffer, "w");
 
     // write dice
     if (dice_out) {
@@ -146,18 +149,18 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
     }
 
     // write jukes cantor
-    if (jukes_cantor_out) {
-        fprintf(jukes_cantor_out, "%d\n", program_arguments->number_of_genomes);
+    if (evol_out) {
+        fprintf(evol_out, "%d\n", program_arguments->number_of_genomes);
 
         for (int i = 0; i < program_arguments->number_of_genomes; i++) {
-            fprintf(jukes_cantor_out, "%-10s", genome_arguments[i].shortName);
+            fprintf(evol_out, "%-10s", genome_arguments[i].shortName);
 
             for (int j = 0; j < program_arguments->number_of_genomes; j++) {
-                fprintf(jukes_cantor_out, " %-.15f", jukes_cantor[i][j]);
+                fprintf(evol_out, " %-.15f", evol[i][j]);
             }
-            fprintf(jukes_cantor_out, "\n");
+            fprintf(evol_out, "\n");
         }
-        fclose(jukes_cantor_out);
+        fclose(evol_out);
     }
 }
 

@@ -72,6 +72,18 @@ double calcDiceSim(uint64_t interSize, uint64_t size1, uint64_t size2);
 double calcHammDist(double jaccardSim, double avgLen);
 
 /**
+ * @brief Calculates the Hamming distance from Dice similarity.
+ * 
+ * This function computes the (approx) Hamming distance using the formula:
+ * Evolutionary Distance = - 1 / kmerSize * ln( 2 * Jaccard Similarity / (1 +  Jaccard Similarity))
+ * 
+ * @param jaccardSim The Jaccard similarity value (range: 0 to 1).
+ * @param avgLen   The average length (e.g., k-mer size).
+ * @return The computed evolutionary distance.
+ */
+double calcEvolDist(double jaccardSim, double avgLen);
+
+/**
  * @brief Applies the Jukes-Cantor correction to a Hamming distance.
  * 
  * This function converts a raw Hamming distance into a phylogenetic
