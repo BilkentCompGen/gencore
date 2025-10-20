@@ -9,6 +9,7 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <math.h>
+#include <pthread.h>
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -30,7 +31,7 @@
  * @param interSize A reference to the variable where the computed size of the intersection will be stored.
  * @param unionSize A reference to the variable where the computed size of the union will be stored.
  */
-void calcUISize(const struct gargs *argument1, const struct gargs *argument2, uint64_t *interSize, uint64_t *unionSize);
+void calcUISize(const g_args_t *argument1, const g_args_t *argument2, uint64_t *interSize, uint64_t *unionSize);
 
 /**
  * @brief Calculates the Jaccard similarity between two genomes.
@@ -103,13 +104,13 @@ double calcJukesCantorCor(double hammingDist);
  * the resulting matrices to output files with filenames based on the program 
  * prefix, genome type, and LCP level.
  *
- * @param genome_arguments Pointer to the array of genome arguments (`gargs`) 
+ * @param genome_args Pointer to the array of genome arguments (`gargs`) 
  *                         containing genome data for comparison.
- * @param program_arguments Pointer to the program arguments (`pargs`) 
+ * @param program_args Pointer to the program arguments (`pargs`) 
  *                          containing program-wide parameters such as the 
  *                          number of genomes and file prefix.
  */
-void calcDistances(const struct gargs *genome_arguments, const struct pargs* program_arguments);
+void calcDistances(const g_args_t *genome_args, const p_args_t* program_args);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -123,11 +124,11 @@ void calcDistances(const struct gargs *genome_arguments, const struct pargs* pro
  * This function modifies the input vector `hash_values` by sorting it in-place
  * The resulting vector will contain the same values arranged in ascending order.
  *
- * @param genome_arguments A reference to a vector of `gargs` structures
+ * @param genome_args A reference to a vector of `gargs` structures
  *        representing the arguments specific to each genome which is needed for cores.
  * @param apply_filter A boolena integer that decides whether to apply filter or not.
  */
-void genSign(struct gargs *genome_arguments, int apply_filter);
+void genSign(g_args_t *genome_args, int apply_filter);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -196,6 +197,23 @@ int ends_with_fq(const char *str);
  */
 int log1(LogLevel level, const char *format, ...);
 
+/**
+ * @brief Logs a formatted message with a timestamp and log level in thread-safe 
+ * manner.
+ *
+ * This function prints a log message prefixed with the current timestamp and 
+ * the specified log level (INFO, WARN, or ERROR). It uses a `printf`-style 
+ * format string and additional arguments for the message content. It locks the
+ * mutex while performing printing.
+ *
+ * @param level The log level (INFO, WARN, or ERROR) to categorize the log message.
+ * @param mutex The mutex locked to be used for safe printing.
+ * @param format A `printf`-style format string for the log message.
+ * @param ... Additional arguments for the format string.
+ * @return Always returns 1 upon completion.
+ */
+int log3(LogLevel level, pthread_mutex_t *mutex, const char *format, ...);
+
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 // MARK: Cleanup
@@ -206,16 +224,16 @@ int log1(LogLevel level, const char *format, ...);
  * @brief Frees allocated memory for genome and program arguments.
  *
  * This function releases the memory allocated for the `cores` array in each 
- * genome argument within the `genome_arguments` structure. It also resets the 
+ * genome argument within the `genome_args` structure. It also resets the 
  * length of the `cores` array (`cores_len`) to 0 to avoid dangling references. 
- * Finally, it frees the entire `genome_arguments` array.
+ * Finally, it frees the entire `genome_args` array.
  *
- * @param genome_arguments Pointer to the array of genome arguments (`gargs`) 
+ * @param genome_args Pointer to the array of genome arguments (`gargs`) 
  *                         to be freed.
- * @param program_arguments Pointer to the program arguments (`pargs`) that 
+ * @param program_args Pointer to the program arguments (`pargs`) that 
  *                          contains the number of genomes.
  */
-void free_args(struct gargs * genome_arguments, struct pargs * program_arguments);
+void free_args(g_args_t * genome_args, p_args_t * program_args);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------

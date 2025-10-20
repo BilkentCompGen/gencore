@@ -24,7 +24,7 @@ gencore.o: gencore.c
 	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
 
 rfasta.o: rfasta.c
-	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
+	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
 
 rfastq.o: rfastq.c
 	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@

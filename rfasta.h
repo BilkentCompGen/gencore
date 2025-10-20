@@ -6,7 +6,7 @@
 #include "tpool.h"
 #include "lps.h"
 #include <stdint.h>
-
+#include <htslib/faidx.h>
 
 /**
  * @brief Reads multiple FASTA files concurrently using a pool of threads.
@@ -17,18 +17,18 @@
  * a FASTA file using the `read_fasta` function, which operates on the provided 
  * thread arguments and shared program settings. 
  * 
- * @param genome_arguments A reference to a array of `gargs` structures 
+ * @param genome_args A reference to a array of `gargs` structures 
  *        representing the arguments specific to each genome.
- * @param program_arguments A constant reference to a `pargs` structure 
+ * @param program_args A constant reference to a `pargs` structure 
  *        representing the global program arguments.
  */
-void read_fastas(struct gargs *genome_arguments, struct pargs *program_arguments);
+void read_fastas(g_args_t *genome_args, p_args_t *program_args);
 
 /**
  * @brief Reads a FASTA file and processes its sequences using the LCP (Locally 
  * Consistent Parsing) method.
  * 
- * This function is responsible for reading a FASTA file specified in the `genome_arguments`, 
+ * This function is responsible for reading a FASTA file specified in the `genome_args`, 
  * processing each sequence using LCP technique, and storing the results. The function manages 
  * logging for verbose output, tracks the size of processed sequences, and handles thread-safe 
  * operations, as it is designed to be run in a multithreaded environment.
@@ -48,10 +48,10 @@ void read_fasta(void *arg);
  * @param sequence A pointer to the DNA sequence to be processed.
  * @param seq_size The length of the DNA sequence.
  * @param capacity The pointer to the capacity value of the cores array.
- * @param genome_arguments Pointer to the genome arguments structure, which 
+ * @param genome_args Pointer to the genome arguments structure, which 
  *        contains settings such as the LCP level and whether to save results.
  * @param out The output file pointer to save the processed results.
  */
-void process_chrom(char *sequence, size_t seq_size, uint64_t *capacity, struct gargs *genome_arguments, FILE *out);
+void process_chrom(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t *genome_args, FILE *out);
 
 #endif

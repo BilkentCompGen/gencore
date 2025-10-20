@@ -1,6 +1,8 @@
 [submodule "htslib"]
 	path = htslib
 	url = https://github.com/samtools/htslib.git
+	ignore = all
 [submodule "lcptools"]
 	path = lcptools
 	url = https://github.com/BilkentCompGen/lcptools.git
+	ignore = all

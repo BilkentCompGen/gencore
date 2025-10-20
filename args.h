@@ -4,12 +4,21 @@
 #include <stdint.h>
 #include <stdio.h>
 
+#define DEFAULT_FA_MIN_CC 0
+#define DEFAULT_FQ_MIN_CC 32
+#define DEFAULT_FA_MAX_CC UINT32_MAX
+#define DEFAULT_FQ_MAX_CC UINT32_MAX
+#define DEFAULT_SIM_CALC_MODE SET
+#define DEFAULT_LCP_LEVEL 5
+#define DEFAULT_THREAD_NUMBER 8
+#define DEFAULT_VERBOSE 0
+#define DEFAULT_WRITE_LCP_CORES 0
+#define DEFAULT_PREFIX "gc"
+#define DEFAULT_COMPRESSION_RATIO 4
 #define MAGIC_LCP_FA_CONSTANT 2.20  // the constant reduction of cores is 2.33 but to be 
                                     // safe, it is selected lower than that
-
 #define MAGIC_LCP_FQ_CONSTANT 2.00  // the constant reduction of cores is 1.5 but to be 
                                     // more efficient, it is selected higher than that
-
 #define INITIAL_SEQUENCE_SIZE 300000000
 #define SEPERATOR '$'
 
@@ -32,14 +41,37 @@ typedef enum {
 
 typedef uint64_t simple_core; // first 32 bits are ulabel, last 32 is length of the core
 
-struct pargs {
-    program_mode mode;
-    int thread_number;
-    char *prefix;
-    int number_of_genomes;
-};
+typedef struct {
+    char *fasta;
+    char *name;
+    int length;
+    int seq_idx;
+    simple_core *cores;
+    uint64_t core_count;
+    double cores_total_len;
+    double exec_time;
+} seq_t;
 
-struct gargs {
+typedef struct {
+    seq_t *seqs;
+    int seq_count;
+    int capacity;
+    long total_seq_len;
+    int lcp_level;
+} fa_thread_t;
+
+typedef struct {
+    program_mode mode;
+    int n_threads;
+    char *prefix;
+    int n_genomes;
+    sim_calculation_type sct;
+    int lcp_level;
+    int write_lcpt; // 1: true, 0: false
+    int verbose;  // 1: true, 0: false
+} p_args_t;
+
+typedef struct {
     int apply_filter;
     uint32_t min_cc;
     uint32_t max_cc;
@@ -54,7 +86,7 @@ struct gargs {
     int lcp_level;
     int write_lcpt; // 1: true, 0: false
     int verbose;  // 1: true, 0: false
-};
+} g_args_t;
 
 typedef struct {
     uint64_t value;

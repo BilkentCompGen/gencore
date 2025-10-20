@@ -8,24 +8,24 @@
 int main(int argc, char **argv) {
 
     // parse and initialize arguments
-    struct gargs *genome_arguments;
-    struct pargs program_arguments;
+    g_args_t *genome_args;
+    p_args_t program_args;
 
-    parse(argc, argv, &genome_arguments, &program_arguments);
+    parse(argc, argv, &genome_args, &program_args);
 
     // initialize coefficient arrays
     LCP_INIT();
 
     // process files program
-    switch (program_arguments.mode) {
+    switch (program_args.mode) {
     case FA:
-        read_fastas(genome_arguments, &program_arguments);
+        read_fastas(genome_args, &program_args);
         break;
     case FQ:
-        read_fastqs(genome_arguments, &program_arguments);
+        read_fastqs(genome_args, &program_args);
         break;
     case LOAD:
-        read_lcpts(genome_arguments, &program_arguments);
+        read_lcpts(genome_args, &program_args);
         break;
     default:
         log1(ERROR, "Invalid program mode provided. It should not happen.");
@@ -33,10 +33,10 @@ int main(int argc, char **argv) {
     }
     
     // calculate distances and store them in files
-    calcDistances(genome_arguments, &program_arguments);
+    calcDistances(genome_args, &program_args);
 
     // cleanup
-    free_args(genome_arguments, &program_arguments);
+    free_args(genome_args, &program_args);
 
     return 0;
 }

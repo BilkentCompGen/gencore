@@ -23,12 +23,12 @@
  * a FASTQ file using the `read_fastq` function, which operates on the provided 
  * thread arguments and shared program settings. 
  * 
- * @param genome_arguments A reference to a vector of `gargs` structures 
+ * @param genome_args A reference to a vector of `gargs` structures 
  *        representing the arguments specific to each genome.
- * @param program_arguments A constant reference to a `pargs` structure 
+ * @param program_args A constant reference to a `pargs` structure 
  *        representing the global program arguments.
  */
-void read_fastqs(struct gargs *genome_arguments, struct pargs *program_arguments);
+void read_fastqs(g_args_t *genome_args, p_args_t *program_args);
 
 /**
  * @brief Processes a genome files to extract LCP cores using multiple threads.
@@ -71,9 +71,9 @@ void read_fastq(void *arg);
  * @param sequence A pointer to the DNA sequence to be processed.
  * @param seq_size The length of the DNA sequence.
  * @param capacity The pointer to the capacity value of the cores array.
- * @param genome_arguments Pointer to the genome arguments structure, which 
+ * @param genome_args Pointer to the genome arguments structure, which 
  *        contains settings such as the LCP level and whether to save results.
  */
-void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, struct gargs *genome_arguments);
+void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t *genome_args);
 
 #endif

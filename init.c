@@ -12,30 +12,30 @@ void printFaUsage() {
     printf("Usage: ./gencore fa [OPTIONS]\n");
     printf("Options:\n");
     printf("\t-i [filename]   The file contains filenames of genomes.\n");
-    printf("\t-l [num]        Lcp-level. [Default: 5]\n");
-    printf("\t-t [num]        Number of threads. [Default: 8]\n");
-    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 1]\n");
-    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT32_MAX]\n");
-    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n");
+    printf("\t-l [num]        Lcp-level. [Default: %d]\n", DEFAULT_LCP_LEVEL);
+    printf("\t-t [num]        Number of threads. [Default: %d]\n", DEFAULT_THREAD_NUMBER);
+    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MIN_CC);
+    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MAX_CC);
+    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", DEFAULT_SIM_CALC_MODE == SET ? "set" : "vector");
     printf("\t-o [filename]   Store cores.\n");
-    printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n");
+    printf("\t-p [prefix]     Prefix for the results. [Default: %s]\n", DEFAULT_PREFIX);
     printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n");
-    printf("\t-v              Verbose. [Default: false]\n\n");
+    printf("\t-v              Verbose. [Default: %d]\n\n", DEFAULT_VERBOSE);
 }
 
 void printFqUsage() {
     printf("Usage: ./gencore fq [OPTIONS]\n");
     printf("Options:\n");
     printf("\t-i [filename]   The file contains filenames of genomes.\n");
-    printf("\t-l [num]        Lcp-level. [Default: 5]\n");
-    printf("\t-t [num]        Number of threads. [Default: 8]\n");
-    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: 32]\n");
-    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: UINT32_MAX]\n");
-    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: set]\n");
+    printf("\t-l [num]        Lcp-level. [Default: %d]\n", DEFAULT_LCP_LEVEL);
+    printf("\t-t [num]        Number of threads. [Default: %d]\n", DEFAULT_THREAD_NUMBER);
+    printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FQ_MIN_CC);
+    printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MAX_CC);
+    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", DEFAULT_SIM_CALC_MODE == SET ? "set" : "vector");
     printf("\t-o [filename]   Store cores.\n");
-    printf("\t-p [prefix]     Prefix for the results. [Default: gc]\n");
+    printf("\t-p [prefix]     Prefix for the results. [Default: %s]\n", DEFAULT_PREFIX);
     printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n");
-    printf("\t-v              Verbose. [Default: false]\n");
+    printf("\t-v              Verbose. [Default: %d]\n\n", DEFAULT_VERBOSE);
 }
 
 void printUsage2(program_mode mode) {
@@ -118,24 +118,24 @@ int read_line(FILE *file, char buffer[1024], char **result) {
     return -1;
 }
 
-void free_targs(struct gargs **genome_arguments, struct pargs *program_arguments) {
-    for (int i=0; i<program_arguments->number_of_genomes; i++) {
+void free_targs(g_args_t **genome_args, p_args_t *program_args) {
+    for (int i=0; i<program_args->n_genomes; i++) {
         // clean inFileName
-        if ((*genome_arguments)[i].inFileName != NULL)
-            free((*genome_arguments)[i].inFileName);
-        (*genome_arguments)[i].inFileName = NULL;
+        if ((*genome_args)[i].inFileName != NULL)
+            free((*genome_args)[i].inFileName);
+        (*genome_args)[i].inFileName = NULL;
         // clean shortName  
-        if ((*genome_arguments)[i].shortName != NULL)
-            free((*genome_arguments)[i].shortName);
-        (*genome_arguments)[i].shortName = NULL;
+        if ((*genome_args)[i].shortName != NULL)
+            free((*genome_args)[i].shortName);
+        (*genome_args)[i].shortName = NULL;
         // clean outFileName
-        if ((*genome_arguments)[i].outFileName != NULL)
-            free((*genome_arguments)[i].outFileName);
-        (*genome_arguments)[i].outFileName = NULL;
+        if ((*genome_args)[i].outFileName != NULL)
+            free((*genome_args)[i].outFileName);
+        (*genome_args)[i].outFileName = NULL;
     }
 }
 
-void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs *program_arguments) {
+void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args) {
 
     if (argc < 2) {
         printUsage();
@@ -147,17 +147,17 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     uint32_t max_cc;
 
     if (strcmp(argv[1], "fa") == 0) {
-        program_arguments->mode = FA;
-        min_cc = 0;
-        max_cc = UINT32_MAX;
+        program_args->mode = FA;
+        min_cc = DEFAULT_FA_MIN_CC;
+        max_cc = DEFAULT_FA_MAX_CC;
         apply_filter = 0;
     } else if (strcmp(argv[1], "fq") == 0) {
-        program_arguments->mode = FQ;
-        min_cc = 32;
-        max_cc = UINT32_MAX;
+        program_args->mode = FQ;
+        min_cc = DEFAULT_FQ_MIN_CC;
+        max_cc = DEFAULT_FQ_MAX_CC;
         apply_filter = 1;
     } else if (strcmp(argv[1], "ld") == 0) {
-        program_arguments->mode = LOAD;
+        program_args->mode = LOAD;
         min_cc = 0;
         max_cc = UINT32_MAX;
         apply_filter = 0;
@@ -168,9 +168,9 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     }
 
     // set program arguments with their default values
-    program_arguments->thread_number = 8;
-    program_arguments->prefix = "gc";
-    program_arguments->number_of_genomes = 0;
+    program_args->n_threads = DEFAULT_THREAD_NUMBER;
+    program_args->prefix = DEFAULT_PREFIX;
+    program_args->n_genomes = 0;
 
     struct option long_options[] = {
         {"min-cc", required_argument, NULL, 1},
@@ -187,10 +187,10 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
     char *filename_inputs = NULL;
     char *filename_names = NULL;
     char *filename_outputs = NULL;
-    sim_calculation_type sct = SET;
-    int lcp_level = 5;
-    int write_lcpt = 0;
-    int verbose = 0;
+    sim_calculation_type sct = DEFAULT_SIM_CALC_MODE;
+    int lcp_level = DEFAULT_LCP_LEVEL;
+    int write_lcpt = DEFAULT_WRITE_LCP_CORES;
+    int verbose = DEFAULT_VERBOSE;
 
     int opt;
     int long_index;
@@ -206,14 +206,14 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
                 lcp_level = atoi(optarg);
                 break;
             case 't':
-                program_arguments->thread_number = atoi(optarg);
+                program_args->n_threads = atoi(optarg);
                 break;
             case 'o':
                 filename_outputs = optarg;
                 write_lcpt = 1;
                 break;
             case 'p':
-                program_arguments->prefix = optarg;
+                program_args->prefix = optarg;
                 break;
             case 's':
                 filename_names = optarg;
@@ -250,39 +250,43 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
     if (filename_inputs == NULL) {
         log1(ERROR, "Please provide input files.");
-        printUsage2(program_arguments->mode);
+        printUsage2(program_args->mode);
         exit(EXIT_FAILURE);
     }
 
-    program_arguments->number_of_genomes = get_line_count(filename_inputs);
+    program_args->n_genomes = get_line_count(filename_inputs);
+    program_args->sct = sct;
+    program_args->lcp_level = lcp_level;
+    program_args->write_lcpt = write_lcpt;
+    program_args->verbose = verbose;
 
-    if (program_arguments->number_of_genomes == -1) {
+    if (program_args->n_genomes == -1) {
         exit(EXIT_FAILURE);
     }
 
-    (*genome_arguments) = (struct gargs*)malloc(program_arguments->number_of_genomes * sizeof(struct gargs));
-    if ((*genome_arguments) == NULL) {
+    (*genome_args) = (g_args_t*)malloc(program_args->n_genomes * sizeof(g_args_t));
+    if ((*genome_args) == NULL) {
         log1(ERROR, "Memory allocation failed for genome arguments.");
         exit(EXIT_FAILURE);
     }
 
-    for (int i=0; i<program_arguments->number_of_genomes; i++) {
-        (*genome_arguments)[i].apply_filter = apply_filter;
-        (*genome_arguments)[i].min_cc = min_cc;
-        (*genome_arguments)[i].max_cc = max_cc;
-        (*genome_arguments)[i].inFileName = NULL;
-        (*genome_arguments)[i].shortName = NULL;
-        (*genome_arguments)[i].outFileName = NULL;
-        (*genome_arguments)[i].cores_len = 0;
-        (*genome_arguments)[i].cores = NULL;
-        (*genome_arguments)[i].total_len = 0.0;
-        (*genome_arguments)[i].sct = sct;
-        (*genome_arguments)[i].lcp_level = lcp_level;
-        (*genome_arguments)[i].write_lcpt = write_lcpt;
-        (*genome_arguments)[i].verbose = verbose;
+    for (int i=0; i<program_args->n_genomes; i++) {
+        (*genome_args)[i].apply_filter = apply_filter;
+        (*genome_args)[i].min_cc = min_cc;
+        (*genome_args)[i].max_cc = max_cc;
+        (*genome_args)[i].inFileName = NULL;
+        (*genome_args)[i].shortName = NULL;
+        (*genome_args)[i].outFileName = NULL;
+        (*genome_args)[i].cores_len = 0;
+        (*genome_args)[i].cores = NULL;
+        (*genome_args)[i].total_len = 0.0;
+        (*genome_args)[i].sct = sct;
+        (*genome_args)[i].lcp_level = lcp_level;
+        (*genome_args)[i].write_lcpt = write_lcpt;
+        (*genome_args)[i].verbose = verbose;
     }
 
-    program_arguments->thread_number = program_arguments->thread_number < program_arguments->number_of_genomes ? program_arguments->thread_number : program_arguments->number_of_genomes;
+    // program_args->n_threads = program_args->n_threads < program_args->n_genomes ? program_args->n_threads : program_args->n_genomes;
 
     // check filename_inputs
     if (filename_inputs != NULL) {
@@ -295,10 +299,10 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
         char buffer[1024];
  
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            if (read_line(file, buffer, &((*genome_arguments)[i].inFileName)) == -1) {
-                free_targs(genome_arguments, program_arguments);
-                free(*genome_arguments);
+        for (int i=0; i<program_args->n_genomes; i++) {
+            if (read_line(file, buffer, &((*genome_args)[i].inFileName)) == -1) {
+                free_targs(genome_args, program_args);
+                free(*genome_args);
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
@@ -318,10 +322,10 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
         char buffer[1024];
  
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            if (read_line_uint32(file, buffer, &((*genome_arguments)[i].min_cc)) == -1) {
-                free_targs(genome_arguments, program_arguments);
-                free(*genome_arguments);
+        for (int i=0; i<program_args->n_genomes; i++) {
+            if (read_line_uint32(file, buffer, &((*genome_args)[i].min_cc)) == -1) {
+                free_targs(genome_args, program_args);
+                free(*genome_args);
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
@@ -341,10 +345,10 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
         char buffer[1024];
  
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            if (read_line_uint32(file, buffer, &((*genome_arguments)[i].max_cc)) == -1) {
-                free_targs(genome_arguments, program_arguments);
-                free(*genome_arguments);
+        for (int i=0; i<program_args->n_genomes; i++) {
+            if (read_line_uint32(file, buffer, &((*genome_args)[i].max_cc)) == -1) {
+                free_targs(genome_args, program_args);
+                free(*genome_args);
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
@@ -364,21 +368,21 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
         char buffer[1024];
  
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            if (read_line(file, buffer, &((*genome_arguments)[i].shortName)) == -1) {
-                free_targs(genome_arguments, program_arguments);
-                free(*genome_arguments);
+        for (int i=0; i<program_args->n_genomes; i++) {
+            if (read_line(file, buffer, &((*genome_args)[i].shortName)) == -1) {
+                free_targs(genome_args, program_args);
+                free(*genome_args);
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
-            (*genome_arguments)[i].shortName[10] = '\0';
+            (*genome_args)[i].shortName[10] = '\0';
         }
 
         fclose(file);
     } else {
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            (*genome_arguments)[i].shortName = strdup((*genome_arguments)[i].inFileName);
-            (*genome_arguments)[i].shortName[10] = '\0';
+        for (int i=0; i<program_args->n_genomes; i++) {
+            (*genome_args)[i].shortName = strdup((*genome_args)[i].inFileName);
+            (*genome_args)[i].shortName[10] = '\0';
         }
     }
 
@@ -393,10 +397,10 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
 
         char buffer[1024];
  
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            if (read_line(file, buffer, &((*genome_arguments)[i].outFileName)) == -1) {
-                free_targs(genome_arguments, program_arguments);
-                free(*genome_arguments);
+        for (int i=0; i<program_args->n_genomes; i++) {
+            if (read_line(file, buffer, &((*genome_args)[i].outFileName)) == -1) {
+                free_targs(genome_args, program_args);
+                free(*genome_args);
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
@@ -416,21 +420,21 @@ void parse(int argc, char **argv, struct gargs **genome_arguments, struct pargs 
         log1(INFO, "Program mode: LOAD");
     }
 
-    log1(INFO, "Thread number: %d", program_arguments->thread_number);
-    log1(INFO, "Prefix: %s", program_arguments->prefix);
-    log1(INFO, "LCP level: %d", (*genome_arguments)[0].lcp_level);
-    log1(INFO, "Distance calculation mode: %s", ((*genome_arguments)[0].sct == SET ? "set" : "vector"));
+    log1(INFO, "Thread number: %d", program_args->n_threads);
+    log1(INFO, "Prefix: %s", program_args->prefix);
+    log1(INFO, "LCP level: %d", (*genome_args)[0].lcp_level);
+    log1(INFO, "Distance calculation mode: %s", ((*genome_args)[0].sct == SET ? "set" : "vector"));
 
-    if ((*genome_arguments)[0].write_lcpt) { 
+    if ((*genome_args)[0].write_lcpt) { 
         log1(INFO, "Program will write cores to files.");
     }
 
-    if ((*genome_arguments)[0].verbose) {
-        for (int i=0; i<program_arguments->number_of_genomes; i++) {
-            if ((*genome_arguments)[i].apply_filter) {
-                log1(INFO, "in: %s, short: %s, out: %s, min-cc: %ld, max-cc: %ld", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName, (*genome_arguments)[i].min_cc, (*genome_arguments)[i].max_cc);
+    if ((*genome_args)[0].verbose) {
+        for (int i=0; i<program_args->n_genomes; i++) {
+            if ((*genome_args)[i].apply_filter) {
+                log1(INFO, "in: %s, short: %s, out: %s, min-cc: %ld, max-cc: %ld", (*genome_args)[i].inFileName, (*genome_args)[i].shortName, (*genome_args)[i].outFileName, (*genome_args)[i].min_cc, (*genome_args)[i].max_cc);
             } else {
-                log1(INFO, "in: %s, short: %s, out: %s", (*genome_arguments)[i].inFileName, (*genome_arguments)[i].shortName, (*genome_arguments)[i].outFileName);
+                log1(INFO, "in: %s, short: %s, out: %s", (*genome_args)[i].inFileName, (*genome_args)[i].shortName, (*genome_args)[i].outFileName);
             }
         }
     }
