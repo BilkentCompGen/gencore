@@ -124,11 +124,10 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args);
  * This function modifies the input vector `hash_values` by sorting it in-place
  * The resulting vector will contain the same values arranged in ascending order.
  *
- * @param genome_args A reference to a vector of `gargs` structures
+ * @param args A reference to a vector of `gargs` structures
  *        representing the arguments specific to each genome which is needed for cores.
- * @param apply_filter A boolena integer that decides whether to apply filter or not.
  */
-void genSign(g_args_t *genome_args, int apply_filter);
+void genSign(void *args);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -225,7 +224,7 @@ int log3(LogLevel level, pthread_mutex_t *mutex, const char *format, ...);
  *
  * This function releases the memory allocated for the `cores` array in each 
  * genome argument within the `genome_args` structure. It also resets the 
- * length of the `cores` array (`cores_len`) to 0 to avoid dangling references. 
+ * length of the `cores` array (`core_count`) to 0 to avoid dangling references. 
  * Finally, it frees the entire `genome_args` array.
  *
  * @param genome_args Pointer to the array of genome arguments (`gargs`) 

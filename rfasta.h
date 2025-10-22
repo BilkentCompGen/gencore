@@ -17,12 +17,33 @@
  * a FASTA file using the `read_fasta` function, which operates on the provided 
  * thread arguments and shared program settings. 
  * 
+ * NOTE: threading is based on chromosome, so, more balanced. But it requires 
+ * fai files for FASTAs.
+ * 
  * @param genome_args A reference to a array of `gargs` structures 
  *        representing the arguments specific to each genome.
  * @param program_args A constant reference to a `pargs` structure 
  *        representing the global program arguments.
  */
 void read_fastas(g_args_t *genome_args, p_args_t *program_args);
+
+/**
+ * @brief Reads multiple FASTA files concurrently using a pool of threads.
+ * 
+ * This function processes a collection of FASTA files by spawning threads 
+ * based on the genome arguments (`gargs`) and program settings (`pargs`). It 
+ * manages the number of concurrent threads and ensures that each thread reads 
+ * a FASTA file using the `read_fasta` function, which operates on the provided 
+ * thread arguments and shared program settings. 
+ * 
+ * NOTE: threading is based on genomes, so, it is not scalable that much.
+ * 
+ * @param genome_args A reference to a array of `gargs` structures 
+ *        representing the arguments specific to each genome.
+ * @param program_args A constant reference to a `pargs` structure 
+ *        representing the global program arguments.
+ */
+void read_fastas_trivial(g_args_t *genome_args, p_args_t *program_args);
 
 /**
  * @brief Reads a FASTA file and processes its sequences using the LCP (Locally 

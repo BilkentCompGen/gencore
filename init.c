@@ -264,7 +264,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
         exit(EXIT_FAILURE);
     }
 
-    (*genome_args) = (g_args_t*)malloc(program_args->n_genomes * sizeof(g_args_t));
+    (*genome_args) = (g_args_t *)malloc(sizeof(g_args_t) * program_args->n_genomes);
     if ((*genome_args) == NULL) {
         log1(ERROR, "Memory allocation failed for genome arguments.");
         exit(EXIT_FAILURE);
@@ -277,13 +277,14 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
         (*genome_args)[i].inFileName = NULL;
         (*genome_args)[i].shortName = NULL;
         (*genome_args)[i].outFileName = NULL;
-        (*genome_args)[i].cores_len = 0;
         (*genome_args)[i].cores = NULL;
+        (*genome_args)[i].core_count = 0;
         (*genome_args)[i].total_len = 0.0;
         (*genome_args)[i].sct = sct;
         (*genome_args)[i].lcp_level = lcp_level;
         (*genome_args)[i].write_lcpt = write_lcpt;
         (*genome_args)[i].verbose = verbose;
+        memset(&((*genome_args)[i].time_stats), 0, sizeof(time_stats_t));
     }
 
     // program_args->n_threads = program_args->n_threads < program_args->n_genomes ? program_args->n_threads : program_args->n_genomes;
@@ -375,14 +376,16 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
                 fclose(file);
                 exit(EXIT_FAILURE);
             }
-            (*genome_args)[i].shortName[10] = '\0';
+            if (strlen((*genome_args)[i].shortName) > 10)
+                (*genome_args)[i].shortName[10] = '\0';
         }
 
         fclose(file);
     } else {
         for (int i=0; i<program_args->n_genomes; i++) {
             (*genome_args)[i].shortName = strdup((*genome_args)[i].inFileName);
-            (*genome_args)[i].shortName[10] = '\0';
+            if (strlen((*genome_args)[i].shortName) > 10)
+                (*genome_args)[i].shortName[10] = '\0';
         }
     }
 

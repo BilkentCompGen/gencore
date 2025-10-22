@@ -48,8 +48,7 @@ typedef struct {
     int seq_idx;
     simple_core *cores;
     uint64_t core_count;
-    double cores_total_len;
-    double exec_time;
+    double exec_time; // exec. time per thread (including LCP processing)
 } seq_t;
 
 typedef struct {
@@ -58,7 +57,15 @@ typedef struct {
     int capacity;
     long total_seq_len;
     int lcp_level;
+    int verbose;
 } fa_thread_t;
+
+typedef struct {
+    double lcp;
+    double merging;
+    double sorting;
+    double filtering;
+} time_stats_t;
 
 typedef struct {
     program_mode mode;
@@ -68,7 +75,7 @@ typedef struct {
     sim_calculation_type sct;
     int lcp_level;
     int write_lcpt; // 1: true, 0: false
-    int verbose;  // 1: true, 0: false
+    int verbose; // 1: true, 0: false
 } p_args_t;
 
 typedef struct {
@@ -78,14 +85,15 @@ typedef struct {
     char *inFileName;
     char *shortName;
     char *outFileName;
-    uint64_t cores_len;
     simple_core *cores;
+    uint64_t core_count;
     double total_len;
     // other
     sim_calculation_type sct;
     int lcp_level;
     int write_lcpt; // 1: true, 0: false
     int verbose;  // 1: true, 0: false
+    time_stats_t time_stats;
 } g_args_t;
 
 typedef struct {

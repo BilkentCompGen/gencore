@@ -68,10 +68,10 @@ void read_lcpt(void *arg) {
     }
 
     // sort and filter the cores
-    genSign(genome_args, genome_args->apply_filter);
+    genSign(genome_args);
 
     // log ending of processing fasta
     if (genome_args->verbose) {
-        log1(INFO, "Thread ID: %s ended processing %s, size: %ld", pthread_self(), genome_args->inFileName, genome_args->cores_len);
+        log1(INFO, "Thread ID: %s ended processing %s, size: %ld", pthread_self(), genome_args->inFileName, genome_args->core_count);
     }
 }

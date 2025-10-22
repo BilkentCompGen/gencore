@@ -4,8 +4,8 @@ void calcUISize(const g_args_t *argument1, const g_args_t *argument2, uint64_t *
     
     uint64_t is = 0;
     uint64_t us = 0;
-    uint64_t size1 = argument1->cores_len;
-    uint64_t size2 = argument2->cores_len;
+    uint64_t size1 = argument1->core_count;
+    uint64_t size2 = argument2->core_count;
     uint64_t index1 = 0;
     uint64_t index2 = 0;
 
@@ -75,10 +75,10 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args) {
             size_t interSize, unionSize;
             calcUISize(&(genome_args[i]), &(genome_args[j]), &interSize, &unionSize);
 
-            double diceDist = 1.0 - calcDiceSim(interSize, genome_args[i].cores_len, genome_args[j].cores_len);
+            double diceDist = 1.0 - calcDiceSim(interSize, genome_args[i].core_count, genome_args[j].core_count);
             double jaccardDist = 1.0 - calcJaccardSim(interSize, unionSize);
             
-            double avg_len = (genome_args[i].total_len+genome_args[j].total_len)/(genome_args[i].cores_len+genome_args[j].cores_len);
+            double avg_len = (genome_args[i].total_len+genome_args[j].total_len)/(genome_args[i].core_count+genome_args[j].core_count);
             double evolDist = calcEvolDist(1.0 - jaccardDist, avg_len);
 
             dice[i][j] = diceDist;
@@ -170,6 +170,15 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args) {
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 
+int compare_simple_core(const void *a, const void *b) {
+    simple_core x = *(const simple_core *)a;
+    simple_core y = *(const simple_core *)b;
+
+    if (x < y) return -1;
+    if (x > y) return 1;
+    return 0;
+}
+
 void quicksort(simple_core *array, int low, int high) {
     if (low < high) {
         simple_core pivot = array[high];
@@ -184,8 +193,8 @@ void quicksort(simple_core *array, int low, int high) {
             }
         }
 
-        simple_core temp = array[i+1];
-        array[i+1] = array[high];
+        simple_core temp = array[i + 1];
+        array[i + 1] = array[high];
         array[high] = temp;
 
         quicksort(array, low, i);
@@ -193,15 +202,24 @@ void quicksort(simple_core *array, int low, int high) {
     }
 }
 
-void genSign(g_args_t *genome_args, int apply_filter) {
+void genSign(void *args) {
+
+    g_args_t *genome_args = (g_args_t *)args;
 
     simple_core *cores = genome_args->cores;
-    uint64_t len = genome_args->cores_len;
+    uint64_t len = genome_args->core_count;
     double total_len = genome_args->total_len;
 
-    quicksort(cores, 0, len);
+    time_t start, breakpoint, end;
+    time(&start);
+
+    // quicksort(cores, 0, len - 1, print_ver);
+    qsort(cores, len, sizeof(simple_core), compare_simple_core);
+
+    time(&breakpoint);
+    genome_args->time_stats.sorting = difftime(breakpoint, start);
     
-    if (apply_filter) {
+    if (genome_args->apply_filter) {
         uint32_t min_cc = genome_args->min_cc;
         uint32_t max_cc = genome_args->max_cc;
         uint64_t index = 0;
@@ -219,16 +237,18 @@ void genSign(g_args_t *genome_args, int apply_filter) {
 
             i += freq;
         }
-        genome_args->cores_len = index;
+        genome_args->core_count = index;
         len = index;
     }
     
     if (genome_args->sct == VECTOR) {
+        time(&end);
+        genome_args->time_stats.filtering = difftime(end, breakpoint);
         return;
     }
 
     uint64_t index = 0;
-    uint64_t i=1;
+    uint64_t i = 1;
     total_len += cores[0] & 0xFFFFFFFF;
 
     while (i<len) {
@@ -240,8 +260,10 @@ void genSign(g_args_t *genome_args, int apply_filter) {
         i++;
     }
 
+    index++;
+
     if (index) {
-        simple_core *new_cores = (simple_core *)realloc(cores, index * sizeof(simple_core));
+        simple_core *new_cores = (simple_core *)realloc(cores, sizeof(simple_core) * index);
         if (new_cores) {
             genome_args->cores = new_cores;
         } else {
@@ -254,8 +276,11 @@ void genSign(g_args_t *genome_args, int apply_filter) {
         genome_args->cores = NULL;
     }
 
-    genome_args->cores_len = index; 
+    genome_args->core_count = index; 
     genome_args->total_len = total_len;
+
+    time(&end);
+    genome_args->time_stats.filtering = difftime(end, breakpoint);
 }
 
 // ---------------------------------------------------------------------------------
@@ -394,10 +419,10 @@ void free_args(g_args_t *genome_args, p_args_t *program_args) {
             free(genome_args[i].outFileName);
         if (genome_args[i].shortName)
             free(genome_args[i].shortName);
-        if (genome_args[i].cores_len) {
-            if (genome_args[i].cores_len)
+        if (genome_args[i].core_count) {
+            if (genome_args[i].core_count)
                 free(genome_args[i].cores);
-            genome_args[i].cores_len = 0;
+            genome_args[i].core_count = 0;
         }
     }
 
@@ -446,7 +471,7 @@ void heapify_down(min_heap *heap, size_t idx) {
 void heap_push(min_heap *heap, heap_node node) {
     if (heap->size == heap->capacity) {
         heap->capacity *= 2;
-        heap->data = realloc(heap->data, heap->capacity * sizeof(heap_node));
+        heap->data = realloc(heap->data, sizeof(heap_node) * heap->capacity);
     }
     heap->data[heap->size++] = node;
     heapify_up(heap, heap->size - 1);

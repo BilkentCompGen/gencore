@@ -72,9 +72,9 @@ void process_dir_fastq(void *arg) {
     int temp_filter = genome_args->apply_filter;
     sim_calculation_type temp_mode = genome_args->sct;
 
-    simple_core **cores = (simple_core **)malloc(file_count * sizeof(simple_core *));
+    simple_core **cores = (simple_core **)malloc(sizeof(simple_core *) * file_count);
     memset(cores, 0, file_count * sizeof(simple_core *));
-    uint64_t *sizes = (uint64_t *)malloc(file_count * sizeof(uint64_t));
+    uint64_t *sizes = (uint64_t *)malloc(sizeof(uint64_t) * file_count);
     int index = 0;
     genome_args->apply_filter = 0;
     genome_args->sct = VECTOR;
@@ -86,7 +86,7 @@ void process_dir_fastq(void *arg) {
                     genome_args->inFileName = full_path;
                     read_fastq((void*)genome_args);
                     cores[index] = genome_args->cores;
-                    sizes[index++] = genome_args->cores_len;
+                    sizes[index++] = genome_args->core_count;
                 }
             }
         }
@@ -94,11 +94,11 @@ void process_dir_fastq(void *arg) {
     closedir(dir);
 
     double total_len = 0;
-    uint64_t cores_len = 0;
-    simple_core *new_cores = merge_sorted_arrays(cores, sizes, file_count, genome_args->min_cc, genome_args->max_cc, &cores_len, &total_len);
+    uint64_t core_count = 0;
+    simple_core *new_cores = merge_sorted_arrays(cores, sizes, file_count, genome_args->min_cc, genome_args->max_cc, &core_count, &total_len);
     genome_args->inFileName = dir_name;
     genome_args->cores = new_cores;
-    genome_args->cores_len = cores_len;
+    genome_args->core_count = core_count;
     genome_args->total_len = total_len;
     genome_args->apply_filter = temp_filter;
     genome_args->sct = temp_mode;
@@ -116,12 +116,12 @@ void read_fastq(void *arg) {
         return;
     }
     
-    genome_args->cores = (simple_core*)malloc(estimated_core_size * sizeof(simple_core));
+    genome_args->cores = (simple_core *)malloc(sizeof(simple_core) * estimated_core_size);
     if (genome_args->cores == NULL) {
         log3(ERROR, &console_mutex_rfastq, "Thread coultdn't allocate memory - in: %s", estimated_core_size);
         return;
     }
-    genome_args->cores_len = 0;
+    genome_args->core_count = 0;
     genome_args->total_len = 0;
 
     gzFile in = gzopen(genome_args->inFileName, "r");
@@ -169,14 +169,14 @@ void read_fastq(void *arg) {
     double diff1 = difftime(point1, start);
 
     // sort and filter the cores
-    genSign(genome_args, genome_args->apply_filter);
+    genSign(genome_args);
 
     time(&point2);
     double diff2 = difftime(point2, point1);
 
     // log ending of processing fastq
     if (genome_args->verbose) {
-        log3(INFO, &console_mutex_rfastq, "Thread - %s, LCP [%d:%d:%d], gen-sign [%d:%d:%d], cc: %lu/%lu", genome_args->inFileName, (int)(diff1/3600), (int)(((int)(diff1)%3600)/60), (int)(diff1)%60, (int)(diff2/3600), (int)(((int)(diff2)%3600)/60), (int)(diff2)%60, genome_args->cores_len, estimated_core_size);
+        log3(INFO, &console_mutex_rfastq, "Thread - %s, LCP [%d:%d:%d], gen-sign [%d:%d:%d], cc: %lu/%lu", genome_args->inFileName, (int)(diff1/3600), (int)(((int)(diff1)%3600)/60), (int)(diff1)%60, (int)(diff2/3600), (int)(((int)(diff2)%3600)/60), (int)(diff2)%60, genome_args->core_count, estimated_core_size);
     }
 }
 
@@ -195,11 +195,11 @@ void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t
         init_lps(&str_fwd, sequence+start, end - start);
         lps_deepen(&str_fwd, genome_args->lcp_level);
 
-        uint64_t len = genome_args->cores_len;
+        uint64_t core_count = genome_args->core_count;
 
-        if (cap <= len+str_fwd.size) {
+        if (cap <= core_count + str_fwd.size) {
             cap = cap * 1.5;
-            simple_core* temp = (simple_core*)realloc(genome_args->cores, cap);
+            simple_core *temp = (simple_core *)realloc(genome_args->cores, sizeof(simple_core) * cap);
             if (temp == NULL) {
                 log3(ERROR, &console_mutex_rfastq, "Couldn't increase cores array size.");
                 return;
@@ -209,9 +209,9 @@ void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t
 
         simple_core *cores = genome_args->cores;
 
-        for (int i=0; i<str_fwd.size; i++) {
-            cores[len] = ((uint64_t)str_fwd.cores[i].label << 32) + (str_fwd.cores[i].end-str_fwd.cores[i].start);
-            len++;
+        for (int i = 0; i < str_fwd.size; i++) {
+            cores[core_count] = ((uint64_t)str_fwd.cores[i].label << 32) + (str_fwd.cores[i].end-str_fwd.cores[i].start);
+            core_count++;
         }
         
         free_lps(&str_fwd);
@@ -221,9 +221,9 @@ void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t
         init_lps2(&str_rev, sequence+start, end-start);
         lps_deepen(&str_rev, genome_args->lcp_level);
 
-        if (*capacity <= len+str_rev.size) {
-            *capacity = *capacity * 1.5;
-            simple_core* temp = (simple_core*)realloc(genome_args->cores, *capacity);
+        if (cap <= core_count + str_rev.size) {
+            cap = cap * 1.5;
+            simple_core *temp = (simple_core *)realloc(genome_args->cores, sizeof(simple_core) * cap);
             if (temp == NULL) {
                 log3(ERROR, &console_mutex_rfastq, "Couldn't increase cores array size.");
                 return;
@@ -233,14 +233,14 @@ void process_reads(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t
 
         cores = genome_args->cores;
 
-        for (int i=0; i<str_rev.size; i++) {
-            cores[len] = ((uint64_t)str_rev.cores[i].label << 32) + (str_rev.cores[i].end-str_rev.cores[i].start);
-            len++;
+        for (int i = 0; i < str_rev.size; i++) {
+            cores[core_count] = ((uint64_t)str_rev.cores[i].label << 32) + (str_rev.cores[i].end-str_rev.cores[i].start);
+            core_count++;
         }
         
         free_lps(&str_rev);
 
-        genome_args->cores_len = len;
+        genome_args->core_count = core_count;
         *capacity = cap;
 
         start = end + 1;
