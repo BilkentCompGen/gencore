@@ -10,7 +10,7 @@ This technique allows for the paritioning genomic data into small modules, calle
 
 - **Genome Comparison**: Efficiently compare genomes using distance metrics.
 
-- **Distance Matrix Calculation**: Compute similarity metrics including Jukes-Cantor model.
+- **Distance Matrix Calculation**: Compute similarity metrics.
 
 - **Multi-threading Support**: Leverage multiple threads for faster processing.
 
@@ -94,6 +94,9 @@ For detailed options for each program, see the sections below.
 - **`-s [filename]`**: File containing short names for input files (one name per line). Default is the first 10 characters of input filenames.
 
 - **`-v`**: Enable verbose output (default: false).
+
+
+**NOTE**: Given assembled genomes should be provided with their index files (*.fai*). If they are not present, program will generate them.
 
 ---
 
@@ -196,21 +199,15 @@ The outputs are saved in the specified prefix format, and the following files wi
   
   - Format: Similar to the Dice distance matrix, this file contains the number of genomes on the first line, followed by the Jaccard distance values. Each genome’s line starts with its short name and is followed by its distances to all other genomes. Similar to the Dice matrix, these values are also represented as floating-point numbers. The names are as the default values: prefix, mode, and lcp level.
 
-3) **Jukes-Cantor Correction Matrix**:
+3) **Evolutionary Distance Matrix**:
 
-  - Filename: `gc.set.jc.lvl5.phy`
+  - Filename: `gc.set.evol.lvl5.phy`
 
-  - Formula: This matrix is based on the Dice similarity values and includes corrections using the Jukes-Cantor model. The steps are as follows:
+  - Formula: $D = - \dfrac{1}{k} \ln ( \dfrac{2 J}{1 + J} )$
+  - 
+  - The steps are as follows:
 
-    1. **Calculate Hamming Distance**:  
-      $\text{Hamming Distance} = 1 - (\text{Dice Similarity})^{\frac{1}{\text{Average Length}}}$
-
-      (Where "Average Length" is the average size of cores being compared.)
-
-    2. **Apply Jukes-Cantor Correction**:  
-      $\text{Jukes-Cantor}(A,B) = -\frac{3}{4} \log\left(1 - \text{Hamming Distance} \times \frac{4}{3}\right)$
-
-  - Format: The first line contains the number of genomes, followed by a matrix of Jukes-Cantor corrected distances. Each subsequent line starts with the short name of the genome, followed by the corrected distances from that genome to all other genomes. These values are represented as floating-point numbers.
+  - Format: The first line contains the number of genomes, followed by a matrix of evolutionary distances. Each subsequent line starts with the short name of the genome, followed by the corrected distances from that genome to all other genomes. These values are represented as floating-point numbers.
 
 ---
 

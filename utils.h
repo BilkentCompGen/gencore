@@ -11,6 +11,29 @@
 #include <math.h>
 #include <pthread.h>
 
+
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+// MARK: enum stringification
+// ---------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------------
+
+/**
+ * @brief Stringify the program mode enum `program_mode`.
+ * 
+ * @param m program mode
+ * @return the string version of given parameter
+ */
+const char* mode2str(program_mode m);
+
+/**
+ * @brief Stringify the similarity calculation mode enum `sim_calculation_type`.
+ * 
+ * @param m sim calculation mode
+ * @return the string version of given parameter
+ */
+const char* sct2str(sim_calculation_type m);
+
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 // MARK: Similarity score calculation functions

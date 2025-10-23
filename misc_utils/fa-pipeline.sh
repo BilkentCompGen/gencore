@@ -20,12 +20,19 @@
 #   cfg_template_female.yaml
 #   fa-primates
 #       ├── hg002v1.1.fasta
+#       ├── hg002v1.1.fasta.fai
 #       ├── mGorGor1.dip.cur.20231122.fasta
+#       ├── mGorGor1.dip.cur.20231122.fasta.fai
 #       ├── mPanPan1.dip.cur.20231122.fasta
+#       ├── mPanPan1.dip.cur.20231122.fasta.fai
 #       ├── mPanTro3.dip.cur.20231122.fasta
+#       ├── mPanTro3.dip.cur.20231122.fasta.fai
 #       ├── mPonAbe1.dip.cur.20231205.fasta
+#       ├── mPonAbe1.dip.cur.20231205.fasta.fai
 #       ├── mPonPyg2.dip.cur.20231122.fasta
+#       ├── mPonPyg2.dip.cur.20231122.fasta.fai
 #       ├── mSymSyn1.analysis-dip.20240514.fasta
+#       ├── mSymSyn1.analysis-dip.20240514.fasta.fai
 #       ├── input.txt
 #       └── shortnames.txt
 #   

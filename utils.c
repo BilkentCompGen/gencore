@@ -1,5 +1,22 @@
 #include "utils.h"
 
+const char* mode2str(program_mode m) {
+    switch(m) {
+        case FA: return "FA";
+        case FQ: return "FQ";
+        case LOAD: return "LOAD";
+        default: return "UNKNOWN";
+    }
+}
+
+const char* sct2str(sim_calculation_type m) {
+    switch(m) {
+        case SET: return "set";
+        case VECTOR: return "vec";
+        default: return "UNKNOWN";
+    }
+}
+
 void calcUISize(const g_args_t *argument1, const g_args_t *argument2, uint64_t *interSize, uint64_t *unionSize) {
     
     uint64_t is = 0;

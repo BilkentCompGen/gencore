@@ -16,7 +16,7 @@ void printFaUsage() {
     printf("\t-t [num]        Number of threads. [Default: %d]\n", DEFAULT_THREAD_NUMBER);
     printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MIN_CC);
     printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MAX_CC);
-    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", DEFAULT_SIM_CALC_MODE == SET ? "set" : "vector");
+    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", sct2str(DEFAULT_SIM_CALC_MODE));
     printf("\t-o [filename]   Store cores.\n");
     printf("\t-p [prefix]     Prefix for the results. [Default: %s]\n", DEFAULT_PREFIX);
     printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n");
@@ -31,7 +31,7 @@ void printFqUsage() {
     printf("\t-t [num]        Number of threads. [Default: %d]\n", DEFAULT_THREAD_NUMBER);
     printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FQ_MIN_CC);
     printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MAX_CC);
-    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", DEFAULT_SIM_CALC_MODE == SET ? "set" : "vector");
+    printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", sct2str(DEFAULT_SIM_CALC_MODE));
     printf("\t-o [filename]   Store cores.\n");
     printf("\t-p [prefix]     Prefix for the results. [Default: %s]\n", DEFAULT_PREFIX);
     printf("\t-s [filename]   Set short names of input files. Default is first 10 characters of input file names.\n");
@@ -413,20 +413,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     }
 
     // log parameters
-    if (strcmp(argv[1], "fa") == 0) {
-        log1(INFO, "Program mode: FA");
-    } else if (strcmp(argv[1], "fq") == 0) {
-        log1(INFO, "Program mode: FQ");
-    } else if (strcmp(argv[1], "bam") == 0) {
-        log1(INFO, "Program mode: BAM");
-    } else if (strcmp(argv[1], "ld") == 0) {
-        log1(INFO, "Program mode: LOAD");
-    }
-
-    log1(INFO, "Thread number: %d", program_args->n_threads);
-    log1(INFO, "Prefix: %s", program_args->prefix);
-    log1(INFO, "LCP level: %d", (*genome_args)[0].lcp_level);
-    log1(INFO, "Distance calculation mode: %s", ((*genome_args)[0].sct == SET ? "set" : "vector"));
+    log1(INFO, "%s, threads: %d, LCP: %d, mode: %s, prefix: %s", mode2str(program_args->mode), program_args->n_threads, program_args->lcp_level, sct2str(program_args->sct), program_args->prefix);
 
     if ((*genome_args)[0].write_lcpt) { 
         log1(INFO, "Program will write cores to files.");

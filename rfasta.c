@@ -107,8 +107,8 @@ void thread_process_seqs(void *arg) {
 
     fa_thread_t *thread_args = (fa_thread_t *)arg;
 
-    time_t start, end;
-    time(&start);
+    // time_t start, end;
+    // time(&start);
 
     for (int i = 0; i < thread_args->seq_count; i++) {
         
@@ -144,8 +144,8 @@ void thread_process_seqs(void *arg) {
         thread_args->seqs[i].exec_time = difftime(seq_time_end, seq_time_start);
     }
 
-    time(&end);
-    double total_time = difftime(end, start);
+    // time(&end);
+    // double total_time = difftime(end, start);
 
     // // log ending of processing thread
     // if (thread_args->verbose) {
