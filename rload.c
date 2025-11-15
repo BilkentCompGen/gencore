@@ -8,7 +8,7 @@ void read_lcpts(g_args_t *genome_args, p_args_t *program_args) {
 
     tm = tpool_create(program_args->n_threads);
 
-    for (int i=0; i<program_args->n_genomes; i++) {
+    for (int i = 0; i < program_args->n_genomes; i++) {
         tpool_add_work(tm, read_lcpt, genome_args+i);
     }
 

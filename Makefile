@@ -1,45 +1,77 @@
-# programs
-TARGET := gencore
-SRCS := $(wildcard *.c)
-OBJS := $(SRCS:.c=.o)
-
-# directories
+# ========================================
+#  Project Configuration
+# ========================================
+TARGET 		:= gencore
+SRCS 		:= $(wildcard *.c)
+OBJS 		:= $(SRCS:.c=.o)
 CURRENT_DIR := $(shell pwd)
 
-# compiler
-GXX := gcc
-CXXFLAGS = -O3 -Wall -Wextra -Wpedantic
+# ========================================
+#  Compiler and Flags
+# ========================================
 
-# object files that need lcptools
-LCPTOOLS_CXXFLAGS := -I$(CURRENT_DIR)/lcptools/include
-LCPTOOLS_LDFLAGS := -L$(CURRENT_DIR)/lcptools/lib -llcptools -Wl,-rpath,$(CURRENT_DIR)/lcptools/lib -lz
-HTSLIB_CXXFLAGS := -I$(CURRENT_DIR)/htslib/include
-HTSLIB_LDFLAGS := -L$(CURRENT_DIR)/htslib/lib -lhts -Wl,-rpath,$(CURRENT_DIR)/htslib/lib -pthread
+CC         := gcc
+CFLAGS     := -O3 -Wall -Wextra -Wpedantic
+LDFLAGS    := -lm -pthread -lz
+
+# ========================================
+#  NUMA
+# ========================================
+
+NUMA_AVAILABLE 	:= 0
+NUMA_INC 		:=
+NUMA_LIB 		:=
+
+ifneq ($(shell pkg-config --exists libnuma && echo yes),)
+    NUMA_AVAILABLE := 1
+    NUMA_INC := $(shell pkg-config --cflags libnuma)
+    NUMA_LIB := $(shell pkg-config --libs libnuma)
+else
+    ifneq ($(shell echo '#include <numa.h>' | $(CC) -E - 2>/dev/null >/dev/null && echo yes),)
+        NUMA_AVAILABLE := 1
+        NUMA_LIB := -lnuma
+    endif
+endif
+
+# Add macro and libs accordingly
+CFLAGS   += -DNUMA_AVAILABLE=$(NUMA_AVAILABLE) $(NUMA_INC)
+LDFLAGS  += $(NUMA_LIB)
+
+# ========================================
+#  External Libraries
+# ========================================
+
+# lcptools
+LCPTOOLS_INC := -I$(CURRENT_DIR)/lcptools/include
+LCPTOOLS_LIB := -L$(CURRENT_DIR)/lcptools/lib -llcptools -Wl,-rpath,$(CURRENT_DIR)/lcptools/lib
+
+# htslib
+HTSLIB_INC := -I$(CURRENT_DIR)/htslib/include
+HTSLIB_LIB := -L$(CURRENT_DIR)/htslib/lib -lhts -Wl,-rpath,$(CURRENT_DIR)/htslib/lib
+
+# ========================================
+#  Combined Flags
+# ========================================
+
+INCLUDES := $(LCPTOOLS_INC) $(HTSLIB_INC)
+CXXLIBS  := $(LCPTOOLS_LIB) $(HTSLIB_LIB)
+
+# ========================================
+#  Build Rules
+# ========================================
+
+all: $(TARGET)
 
 $(TARGET): $(OBJS)
-	$(GXX) $(CXXFLAGS) -o $@ $^ $(LCPTOOLS_LDFLAGS) $(HTSLIB_LDFLAGS) -lm
-	rm *.o
-
-gencore.o: gencore.c
-	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
-
-rfasta.o: rfasta.c
-	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
-
-rfastq.o: rfastq.c
-	$(GXX) $(CXXFLAGS) $(HTSLIB_CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
-
-rload.o: rload.c
-	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
-
-utils.o: utils.c
-	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@ -lz
-
-init.o: init.c
-	$(GXX) $(CXXFLAGS) $(LCPTOOLS_CXXFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) -o $@ $^ $(CXXLIBS) $(LDFLAGS)
+	rm -f $(OBJS)
 
 %.o: %.c
-	$(GXX) $(CXXFLAGS) -c $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDES) -c $< -o $@
+
+# ========================================
+#  Utility Targets
+# ========================================
 
 clean: 
 	@echo "Cleaning"

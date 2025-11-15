@@ -8,7 +8,21 @@ static int cmp_seq_desc(const void *a, const void *b) {
     return sb->length - sa->length;  // descending by length
 }
 
+#if NUMA_AVAILABLE
+void bind_to_node(int node_id) {
+    struct bitmask *bm = numa_allocate_nodemask();
+    numa_bitmask_setbit(bm, node_id);
+    numa_bind(bm);
+    numa_free_nodemask(bm);
+}
+#endif
+
 fa_thread_t *init_threads(p_args_t *program_args) {
+
+#if NUMA_AVAILABLE
+    int num_nodes = numa_num_configured_nodes();
+#endif
+
     fa_thread_t *threads = calloc(program_args->n_threads, sizeof(fa_thread_t));
     for (int i = 0; i < program_args->n_threads; i++) {
         threads[i].capacity = 16;
@@ -17,6 +31,9 @@ fa_thread_t *init_threads(p_args_t *program_args) {
         threads[i].total_seq_len = 0;
         threads[i].lcp_level = program_args->lcp_level;
         threads[i].verbose = program_args->verbose;
+#if NUMA_AVAILABLE
+        threads[i].numa_node_id = i % num_nodes;
+#endif
     }
     return threads;
 }
@@ -51,13 +68,14 @@ void process_chr(char *sequence, seq_t *seq, fa_thread_t *thread_args) {
     int valid_chars[256] = {0};
     valid_chars['A'] = valid_chars['C'] = valid_chars['T'] = valid_chars['G'] = 1;
     valid_chars['a'] = valid_chars['c'] = valid_chars['t'] = valid_chars['g'] = 1;
-    int index = 0;
-    int seq_length = seq->length;
+    uint64_t index = 0;
+    uint64_t seq_length = seq->length;
     
-    int est_core_size = (int)(seq->length / pow(MAGIC_LCP_FA_CONSTANT, thread_args->lcp_level));
+    uint64_t est_core_size = (int)(seq->length / pow(MAGIC_LCP_FA_CONSTANT, thread_args->lcp_level));
     seq->cores = (simple_core *)malloc(sizeof(simple_core) * est_core_size);
     if (!seq->cores) {
         log3(ERROR, &console_mutex_rfasta, "Thread %ld, couldn't allocate cores array size.", pthread_self());
+        return;
     }
     
     while (index < seq_length) {
@@ -66,7 +84,7 @@ void process_chr(char *sequence, seq_t *seq, fa_thread_t *thread_args) {
 
         if (index == seq_length) break;
 
-        int end = index;
+        uint64_t end = index;
         
         while (end < seq_length && valid_chars[(unsigned char)sequence[end]]) end++;
 
@@ -76,7 +94,7 @@ void process_chr(char *sequence, seq_t *seq, fa_thread_t *thread_args) {
 
         if (str.size) {
                     
-            int len = seq->core_count;
+            uint64_t len = seq->core_count;
 
             if (est_core_size <= len + str.size) {
                 est_core_size = est_core_size * 1.5;
@@ -90,7 +108,7 @@ void process_chr(char *sequence, seq_t *seq, fa_thread_t *thread_args) {
         
             simple_core *cores = seq->cores;
         
-            for (int i=0; i<str.size; i++) {
+            for (int i = 0; i < str.size; i++) {
                 cores[len] = ((uint64_t)str.cores[i].label << 32) + (str.cores[i].end-str.cores[i].start);
                 len++;
             }
@@ -107,8 +125,9 @@ void thread_process_seqs(void *arg) {
 
     fa_thread_t *thread_args = (fa_thread_t *)arg;
 
-    // time_t start, end;
-    // time(&start);
+#if NUMA_AVAILABLE
+    bind_to_node(thread_args->numa_node_id);
+#endif
 
     for (int i = 0; i < thread_args->seq_count; i++) {
         
@@ -130,11 +149,6 @@ void thread_process_seqs(void *arg) {
             return;
         }
 
-        if (seq_len != thread_args->seqs[i].length) {
-            log3(ERROR, &console_mutex_rfasta, "Thread %ld, mismatching length for %s in %s", pthread_self(), thread_args->seqs[i].name, thread_args->seqs[i].fasta);
-            fai_destroy(fai);
-        }
-
         process_chr(seq, thread_args->seqs + i, thread_args);
 
         free(seq);
@@ -143,14 +157,6 @@ void thread_process_seqs(void *arg) {
         time(&seq_time_end);
         thread_args->seqs[i].exec_time = difftime(seq_time_end, seq_time_start);
     }
-
-    // time(&end);
-    // double total_time = difftime(end, start);
-
-    // // log ending of processing thread
-    // if (thread_args->verbose) {
-    //     log3(INFO, &console_mutex_rfasta, "Thread %ld, bp: %ld, seqs: %d, time [%d:%02d:%02d]", pthread_self(), thread_args->total_seq_len, thread_args->seq_count, (int)total_time/3600, ((int)total_time%3600)/60, (int)total_time%60);
-    // }
 }
 
 void read_fastas(g_args_t *genome_args, p_args_t *program_args) {
@@ -205,7 +211,7 @@ void read_fastas(g_args_t *genome_args, p_args_t *program_args) {
 
     tm = tpool_create(n_threads);
 
-    for (int i=0; i<n_threads; i++) {
+    for (int i = 0; i < n_threads; i++) {
         tpool_add_work(tm, thread_process_seqs, threads+i);
     }
 
@@ -360,10 +366,10 @@ void read_fasta(void *arg) {
                 sequence_size = 0;
             }
         } else {
-            size_t line_len = strlen(line);
+            uint64_t line_len = strlen(line);
 
             if (sequence_size + line_len >= sequence_capacity) {
-                sequence_capacity = (size_t)(sequence_capacity * 1.5);
+                sequence_capacity = (uint64_t)(sequence_capacity * 1.5);
                 sequence = realloc(sequence, sequence_capacity);
                 if (!sequence) {
                     log3(ERROR, &console_mutex_rfasta, "Thread %ld, memory reallocation failed.", pthread_self());
@@ -408,7 +414,7 @@ void read_fasta(void *arg) {
     }
 }
 
-void process_chrom(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t *genome_args, FILE *out) {
+void process_chrom(char *sequence, uint64_t seq_size, uint64_t *capacity, g_args_t *genome_args, FILE *out) {
 
     int valid_chars[256] = {0};
     valid_chars['A'] = valid_chars['C'] = valid_chars['T'] = valid_chars['G'] = 1;
@@ -447,7 +453,7 @@ void process_chrom(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t
         
             simple_core *cores = genome_args->cores;
         
-            for (int i=0; i<str.size; i++) {
+            for (int i = 0; i < str.size; i++) {
                 cores[core_count] = ((uint64_t)str.cores[i].label << 32) + (str.cores[i].end-str.cores[i].start);
                 core_count++;
             }

@@ -11,6 +11,7 @@
 # Required scripts and commands:
 #   gencore
 #   mash
+#   sourmash
 #   phylowizard.py
 #   psite.py
 #   convert.py (.dist to .phy)
@@ -50,7 +51,10 @@
 #           Siamang
 # 
 # If the chromosome names in FASTA file is given in chrN format, convert it into numberic style.
-#   sed 's/^>chr/>/' human_38.fasta > hg38.fa
+#   sed 's/^>chr/>/' human_v38.fasta > hg38.fa
+#   mv hg38.fa human_v38.fasta
+#   rm human_v38.fasta.fai
+#   samtools faidx human_v38.fasta
 
 : "${SIM:=true}"
 
@@ -58,7 +62,7 @@ GENCORE_DIR=
 MASH_DIR=
 PSITE_DIR=
 
-mkdir fa-tumor-human
+mkdir -p fa-tumor-human
 cd fa-tumor-human
 
 if [ "$SIM" = "true" ]; then
@@ -158,6 +162,7 @@ awk -F '\t' 'NR>1 {print $1".fa" > "input.txt"}' ../map/tumor.tipnode.map
 
 rm -f gencore-tumor-fa-out.txt mash-tumor-fa-out.txt
 
+# GenCore
 for l in 4 5 6 7 8 9; do \
     /bin/time -v ${GENCORE_DIR}/gencore fa \
     -i input.txt \
@@ -169,55 +174,84 @@ for l in 4 5 6 7 8 9; do \
     python3 ${GENCORE_DIR}/phylowizard.py tumor.set.evol.lvl${l}.phy --normalize >> gencore-tumor-fa-out.txt 2>&1; \
 done
 
-for s in 1000 5000 50000 500000 5000000; do \
+# Mash
+for s in 1000 5000 50000 500000 5000000; do
+
     /bin/time -v ${MASH_DIR}/mash sketch \
         -o tumor.mash.${s}.msh *.fa \
         -s ${s} \
-        -p 4 >> mash-tumor-fa-out.txt 2>&1; \
+        -p 4 >> mash-tumor-fa-out.txt 2>&1
+    
     /bin/time -v mash dist \
-         tumor.mash.${s}.msh tumor.mash.${s}.msh > tumor.mash.${s}.dist; \
-    python3 ${GENCORE_DIR}/misc_utils/convert.py tumor.mash.${s}.dist tumor.mash.${s}.phy; \
-    python3 ${GENCORE_DIR}/phylowizard.py tumor.mash.${s}.phy --normalize >> mash-tumor-fa-out.txt 2>&1; \
+         tumor.mash.${s}.msh tumor.mash.${s}.msh > tumor.mash.${s}.dist
+    
+    python3 ${GENCORE_DIR}/misc_utils/convert.py tumor.mash.${s}.dist tumor.mash.${s}.phy
+
+    if [ -f "tumor.mash.${s}.phy" ]; then
+        python3 ${GENCORE_DIR}/phylowizard.py tumor.mash.${s}.phy --normalize >> mash-tumor-fa-out.txt 2>&1
+    else
+        echo "File tumor.mash.${s}.phy not found!"
+    fi
 done
 
-for s in 1000 5000 50000 500000 5000000; do 
-    newick=$(cat "tumor.mash.$s.nj.newick" | sed -E "s/.fa//g")
-    node_names=$(echo "$newick" | grep -oE 'node[0-9]+' | sort -uV)
-    declare -A mash_node_to_tumor
-    tumor_id=1
-    for node in $node_names; do
-        mash_node_to_tumor["$node"]="tumor$tumor_id"
-        tumor_id=$((tumor_id + 1))
-    done
-    for node in "${!mash_node_to_tumor[@]}"; do
-        tumor=${mash_node_to_tumor[$node]}
-        newick=$(echo "$newick" | sed -E "s/\b$node\b/$tumor/g")
-    done
-    echo "$newick" > "tumor.mash.$s.nj.renamed.newick"
+for s in 1000 5000 50000 500000 5000000; do
+    if [ -f "tumor.mash.$s.nj.newick" ]; then
+        
+        newick=$(cat "tumor.mash.$s.nj.newick" | sed -E "s/.fa//g")
+        node_names=$(echo "$newick" | grep -oE 'node[0-9]+' | sort -uV)
+        declare -A mash_node_to_tumor
+        tumor_id=1
+
+        for node in $node_names; do
+            mash_node_to_tumor["$node"]="tumor$tumor_id"
+            tumor_id=$((tumor_id + 1))
+        done
+
+        for node in "${!mash_node_to_tumor[@]}"; do
+            tumor=${mash_node_to_tumor[$node]}
+            newick=$(echo "$newick" | sed -E "s/\b$node\b/$tumor/g")
+        done
+
+        echo "$newick" > "tumor.mash.$s.nj.renamed.newick"       
+    fi
 done
+
+# Sourmash
+/bin/time -v sourmash compute -k 21 *.fa > sourmash-tumor-fa-out.txt 2>&1
+/bin/time -v sourmash compare -p 8 *.sig -o cmp >> sourmash-tumor-fa-out.txt 2>&1
 
 
 cd ../../
 
 cd fa-primates
 
-rm -f gencore-primates-fa-out.txt mash-primates-fa-out.txt
+rm -f gencore-primates-fa-out.txt mash-primates-fa-out.txt sourmash-primates-fa-out.txt
 
-for l in 4 5 6 7; do \
+# GenCore
+for l in 4 5 6 7; do
     /bin/time -v ${GENCORE_DIR}/gencore fa \
-    -i input.txt \
-    -s shortnames.txt \
-    -t 7 \
-    -l "$l" \
-    -p primates \
-    -v >> gencore-primates-fa-out.txt 2>&1; \
-    python3 ${GENCORE_DIR}/phylowizard.py primates.set.evol.lvl${l}.phy; \
+        -i input.txt \
+        -s shortnames.txt \
+        -t 7 \
+        -l "$l" \
+        -p primates \
+        -v >> gencore-primates-fa-out.txt 2>&1;
+    
+    python3 ${GENCORE_DIR}/phylowizard.py primates.set.evol.lvl${l}.phy;
 done
 
+# Mash
 /bin/time -v ${MASH_DIR}/mash sketch \
     -o primates.mash.1000.msh *.fasta \
     -s 1000 \
-    -p 7 >> mash-primates-fa-out.txt 2>&1; \
+    -p 7 >> mash-primates-fa-out.txt 2>&1
+
 /bin/time -v mash dist primates.mash.1000.msh primates.mash.1000.msh > primates.mash.1000.dist
 python3 ${GENCORE_DIR}/misc_utils/convert.py primates.mash.1000.dist primates.mash.1000.phy
 python3 ${GENCORE_DIR}/phylowizard.py primates.mash.1000.phy
+
+# Sourmash
+/bin/time -v sourmash compute -k 21 *.fasta > sourmash-primates-fa-out.txt 2>&1
+/bin/time -v sourmash compare -p 8 *.sig -o cmp >> sourmash-primates-fa-out.txt 2>&1
+
+cd ../..

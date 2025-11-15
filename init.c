@@ -97,7 +97,7 @@ int read_line(FILE *file, char buffer[1024], char **result) {
 
     if (fgets(buffer, 1024, file)) {
  
-        size_t len = strlen(buffer);
+        uint64_t len = strlen(buffer);
 
         if (len > 0 && buffer[len - 1] == '\n') {
             buffer[len - 1] = '\0';
@@ -119,7 +119,7 @@ int read_line(FILE *file, char buffer[1024], char **result) {
 }
 
 void free_targs(g_args_t **genome_args, p_args_t *program_args) {
-    for (int i=0; i<program_args->n_genomes; i++) {
+    for (int i = 0; i < program_args->n_genomes; i++) {
         // clean inFileName
         if ((*genome_args)[i].inFileName != NULL)
             free((*genome_args)[i].inFileName);
@@ -270,7 +270,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
         exit(EXIT_FAILURE);
     }
 
-    for (int i=0; i<program_args->n_genomes; i++) {
+    for (int i = 0; i < program_args->n_genomes; i++) {
         (*genome_args)[i].apply_filter = apply_filter;
         (*genome_args)[i].min_cc = min_cc;
         (*genome_args)[i].max_cc = max_cc;
@@ -300,7 +300,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
         char buffer[1024];
  
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             if (read_line(file, buffer, &((*genome_args)[i].inFileName)) == -1) {
                 free_targs(genome_args, program_args);
                 free(*genome_args);
@@ -323,7 +323,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
         char buffer[1024];
  
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             if (read_line_uint32(file, buffer, &((*genome_args)[i].min_cc)) == -1) {
                 free_targs(genome_args, program_args);
                 free(*genome_args);
@@ -346,7 +346,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
         char buffer[1024];
  
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             if (read_line_uint32(file, buffer, &((*genome_args)[i].max_cc)) == -1) {
                 free_targs(genome_args, program_args);
                 free(*genome_args);
@@ -369,7 +369,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
         char buffer[1024];
  
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             if (read_line(file, buffer, &((*genome_args)[i].shortName)) == -1) {
                 free_targs(genome_args, program_args);
                 free(*genome_args);
@@ -382,7 +382,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
         fclose(file);
     } else {
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             (*genome_args)[i].shortName = strdup((*genome_args)[i].inFileName);
             if (strlen((*genome_args)[i].shortName) > 10)
                 (*genome_args)[i].shortName[10] = '\0';
@@ -400,7 +400,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
         char buffer[1024];
  
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             if (read_line(file, buffer, &((*genome_args)[i].outFileName)) == -1) {
                 free_targs(genome_args, program_args);
                 free(*genome_args);
@@ -420,7 +420,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     }
 
     if ((*genome_args)[0].verbose) {
-        for (int i=0; i<program_args->n_genomes; i++) {
+        for (int i = 0; i < program_args->n_genomes; i++) {
             if ((*genome_args)[i].apply_filter) {
                 log1(INFO, "in: %s, short: %s, out: %s, min-cc: %ld, max-cc: %ld", (*genome_args)[i].inFileName, (*genome_args)[i].shortName, (*genome_args)[i].outFileName, (*genome_args)[i].min_cc, (*genome_args)[i].max_cc);
             } else {

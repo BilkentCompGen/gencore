@@ -86,10 +86,10 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args) {
     }
 
     // Compute similarity scores
-    for (int i=0; i<program_args->n_genomes; i++) { 
-        for (int j=i+1; j<program_args->n_genomes; j++) {
+    for (int i = 0; i < program_args->n_genomes; i++) { 
+        for (int j = i+1; j < program_args->n_genomes; j++) {
             
-            size_t interSize, unionSize;
+            uint64_t interSize, unionSize;
             calcUISize(&(genome_args[i]), &(genome_args[j]), &interSize, &unionSize);
 
             double diceDist = 1.0 - calcDiceSim(interSize, genome_args[i].core_count, genome_args[j].core_count);
@@ -344,7 +344,7 @@ uint64_t est_core_fq(const char *filename, int lcp_level) {
 }
 
 int ends_with_fq(const char *str) {
-    size_t str_len = strlen(str);
+    uint64_t str_len = strlen(str);
 
     return  (str_len >= 3 && strcmp(str + str_len - 3, ".fq") == 0) || 
             (str_len >= 6 && strcmp(str + str_len - 6, ".fastq") == 0) || 
@@ -429,7 +429,7 @@ int log3(LogLevel level, pthread_mutex_t *mutex, const char *format, ...) {
 
 void free_args(g_args_t *genome_args, p_args_t *program_args) {
 
-    for (int i=0; i<program_args->n_genomes; i++) {
+    for (int i = 0; i < program_args->n_genomes; i++) {
         if (genome_args[i].inFileName)
             free(genome_args[i].inFileName);
         if (genome_args[i].outFileName)
@@ -501,16 +501,27 @@ heap_node heap_pop(min_heap *heap) {
     return min;
 }
 
-uint64_t *merge_sorted_arrays(simple_core **cores, uint64_t *sizes, size_t file_count, uint32_t min_cc, uint32_t max_cc, uint64_t *out_total_size, double *out_total_len) {
+void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_count, g_args_t *genome_args) {
+    
+    uint32_t min_cc = genome_args->min_cc;
+    uint32_t max_cc = genome_args->max_cc;
+    
+    genome_args->core_count = 0;
+    genome_args->total_len = 0;
+    
+    time_t start, end;
+    time(&start);
+
+    // merge with heap
     min_heap heap = (min_heap){malloc(file_count * sizeof(heap_node)), 0, file_count};
     uint64_t total_size = 0;
-    for (size_t i = 0; i < file_count; ++i)
+    for (uint64_t i = 0; i < file_count; ++i)
         total_size += sizes[i];
 
     uint64_t *result = malloc(total_size * sizeof(uint64_t));
-    size_t result_index = 0;
+    uint64_t result_index = 0;
 
-    for (size_t i = 0; i < file_count; ++i) {
+    for (uint64_t i = 0; i < file_count; ++i) {
         if (sizes[i] > 0) {
             heap_push(&heap, (heap_node){cores[i][0], i, 0});
         }
@@ -520,7 +531,7 @@ uint64_t *merge_sorted_arrays(simple_core **cores, uint64_t *sizes, size_t file_
         heap_node min = heap_pop(&heap);
         result[result_index++] = min.value;
 
-        size_t next_idx = min.element_index + 1;
+        uint64_t next_idx = min.element_index + 1;
         if (next_idx < sizes[min.array_index]) {
             heap_push(&heap, (heap_node){
                 cores[min.array_index][next_idx],
@@ -532,49 +543,99 @@ uint64_t *merge_sorted_arrays(simple_core **cores, uint64_t *sizes, size_t file_
 
     free(heap.data);
 
+    time(&end);
+    genome_args->time_stats.merging += difftime(end, start);
+
     // apply filtering
+    time(&start);
+
     uint64_t index = 0;
     uint64_t i = 0;
+    double total_len = 0;
 
-    while (i<total_size) {
+    while (i < total_size) {
         uint64_t freq = 1;
 
-        for (uint64_t j=i+1; j<total_size && result[i]==result[j]; j++, freq++);
+        for (uint64_t j = i + 1; j < total_size && result[i] == result[j]; j++, freq++);
 
         if (min_cc<=freq && freq<=max_cc) {
-            memcpy(&(result[index]), &(result[i]), freq * sizeof(simple_core));
-            index += freq;
+            total_len += result[i] & 0xFFFFFFFF;
+            result[index++] = result[i];
         }
 
         i += freq;
     }
-    total_size = index;
 
-    // remove duplicates
-    if (index) {
-        index = 0;
-        i=1;
-        double total_len = result[0] & 0xFFFFFFFF;
-    
-        while (i<total_size) {
-            if (result[index] != result[i]) {
-                index++;
-                result[index] = result[i];
-                total_len += result[i] & 0xFFFFFFFF;
-            }
-            i++;
-        }
-        *out_total_len = total_len;
-        *out_total_size = index;
-    } else {
-        *out_total_len = 0;
-        *out_total_size = 0;
-    }
+    time(&end);
+    genome_args->time_stats.filtering += difftime(end, start);
 
-    for (size_t i = 0; i < file_count; i++) {
+    genome_args->core_count = index;
+    genome_args->total_len = total_len;
+
+    // cleanup
+    for (uint64_t i = 0; i < file_count; i++) {
         if (cores[i] != NULL) free(cores[i]);
     }
     free(cores);
     free(sizes);
-    return result;
+
+    simple_core *temp = (simple_core *)malloc(sizeof(simple_core) * index);
+    if (temp) {
+        memcpy(temp, result, sizeof(simple_core) * index);
+        free(result);
+        genome_args->cores = temp;
+    } else {
+        genome_args->cores = result;
+    }
+}
+
+uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) {
+    
+    time_t start, end;
+    time(&start);
+
+    min_heap heap = (min_heap){malloc(sizeof(heap_node) * n_args), 0, n_args};
+    uint64_t total_size = 0;
+    for (int i = 0; i < n_args; ++i)
+        total_size += args[i].core_count;
+
+    uint64_t *result = malloc(total_size * sizeof(uint64_t));
+    uint64_t result_index = 0;
+
+    for (int i = 0; i < n_args; ++i) {
+        if (args[i].core_count > 0) {
+            heap_push(&heap, (heap_node){args[i].cores[0], i, 0});
+        }
+    }
+
+    while (heap.size > 0) {
+        heap_node min = heap_pop(&heap);
+        result[result_index++] = min.value;
+
+        uint64_t next_idx = min.element_index + 1;
+        if (next_idx < args[min.array_index].core_count) {
+            heap_push(&heap, (heap_node){
+                args[min.array_index].cores[next_idx],
+                min.array_index,
+                next_idx
+            });
+        }
+    }
+
+    free(heap.data);
+
+    for (int i = 0; i < n_args; i++) {
+        free(args[i].cores);
+    }
+
+    *cores = result;
+
+    if (total_size != result_index) {
+        log1(ERROR, "Merged array are not consistent %ld-%ld", total_size, result_index);
+    }
+
+    time(&end);
+    args->time_stats.merging += difftime(end, start);
+    
+    return result_index;
 }

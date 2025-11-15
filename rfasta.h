@@ -7,6 +7,9 @@
 #include "lps.h"
 #include <stdint.h>
 #include <htslib/faidx.h>
+#if NUMA_AVAILABLE
+#include <numa.h>
+#endif
 
 /**
  * @brief Reads multiple FASTA files concurrently using a pool of threads.
@@ -73,6 +76,6 @@ void read_fasta(void *arg);
  *        contains settings such as the LCP level and whether to save results.
  * @param out The output file pointer to save the processed results.
  */
-void process_chrom(char *sequence, size_t seq_size, uint64_t *capacity, g_args_t *genome_args, FILE *out);
+void process_chrom(char *sequence, uint64_t seq_size, uint64_t *capacity, g_args_t *genome_args, FILE *out);
 
 #endif

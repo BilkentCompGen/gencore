@@ -3,24 +3,32 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <stdatomic.h>
 
-#define DEFAULT_FA_MIN_CC 0
-#define DEFAULT_FQ_MIN_CC 32
-#define DEFAULT_FA_MAX_CC UINT32_MAX
-#define DEFAULT_FQ_MAX_CC UINT32_MAX
-#define DEFAULT_SIM_CALC_MODE SET
-#define DEFAULT_LCP_LEVEL 5
-#define DEFAULT_THREAD_NUMBER 8
-#define DEFAULT_VERBOSE 0
-#define DEFAULT_WRITE_LCP_CORES 0
-#define DEFAULT_PREFIX "gc"
-#define DEFAULT_COMPRESSION_RATIO 4
-#define MAGIC_LCP_FA_CONSTANT 2.20  // the constant reduction of cores is 2.33 but to be 
-                                    // safe, it is selected lower than that
-#define MAGIC_LCP_FQ_CONSTANT 2.00  // the constant reduction of cores is 1.5 but to be 
-                                    // more efficient, it is selected higher than that
-#define INITIAL_SEQUENCE_SIZE 300000000
-#define SEPERATOR '$'
+#define DEFAULT_FA_MIN_CC           0
+#define DEFAULT_FQ_MIN_CC           32
+#define DEFAULT_FA_MAX_CC           UINT32_MAX
+#define DEFAULT_FQ_MAX_CC           UINT32_MAX
+#define DEFAULT_SIM_CALC_MODE       SET
+#define DEFAULT_LCP_LEVEL           5
+#define DEFAULT_THREAD_NUMBER       8
+#define DEFAULT_VERBOSE             0
+#define DEFAULT_WRITE_LCP_CORES     0
+#define DEFAULT_PREFIX             "gc"
+#define DEFAULT_COMPRESSION_RATIO   4
+#define MAGIC_LCP_FA_CONSTANT       2.20    // the constant reduction of cores is 2.33 but to be 
+                                            // safe, it is selected lower than that
+#define MAGIC_LCP_FQ_CONSTANT       2.00    // the constant reduction of cores is 1.5 but to be 
+                                            // more efficient, it is selected higher than that
+#define INITIAL_SEQUENCE_SIZE       300000000
+#define FASTQ_WORKER_BUFFER_SIZE    10000000
+#define SEPERATOR                   '$'
+#define THREAD_EXIT_SIGNAL          -2
+#define BUFFER_NOT_INITIALIZED      -1
+#define THREAD_BUSY                 0
+#define THREAD_AVAILABLE            1
+#define SHORT_WAIT_TIME             4096 
+#define MODERATE_WAIT_TIME          32768
 
 typedef enum {
     INFO,
@@ -38,6 +46,11 @@ typedef enum {
     SET,
     VECTOR
 } sim_calculation_type;
+
+typedef enum {
+    FQT_DIR,  
+    FQT_FILE
+} fastq_input_type;
 
 typedef uint64_t simple_core; // first 32 bits are ulabel, last 32 is length of the core
 
@@ -58,6 +71,9 @@ typedef struct {
     long total_seq_len;
     int lcp_level;
     int verbose;
+#if NUMA_AVAILABLE
+    int numa_node_id;
+#endif
 } fa_thread_t;
 
 typedef struct {
@@ -97,9 +113,20 @@ typedef struct {
 } g_args_t;
 
 typedef struct {
+    atomic_int *available;
+    char *buffer;
+    int buffer_len;
+    int lcp_level;
+    simple_core *cores;
+    uint64_t core_count;
+    uint64_t estimated_core_count;
+    time_stats_t time_stats;
+} fqw_args_t;
+
+typedef struct {
     uint64_t value;
     size_t array_index;
-    size_t element_index;
+    uint64_t element_index;
 } heap_node;
 
 typedef struct {

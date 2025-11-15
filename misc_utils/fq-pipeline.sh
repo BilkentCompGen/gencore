@@ -66,42 +66,47 @@
 #       ├── m64076_211107_004425.hifi_reads.fq.gz
 #       ├── m64076_211111_101817.hifi_reads.fq.gz
 #       └── m64076_211112_233105.hifi_reads.fq.gz
-#   ├── gencore
-#   ├── phylowizard.py
-#   ├── input.txt
-#   └── shortnames.txt
 
-# input.txt:
-#   mGorGor
-#   mPanPan1
-#   mPanTro3
-#   mPonAbe1
-#   mPonPyg2
-#   mSymSyn1
-# shortnames.txt:
-#   Gorilla
-#   Bonobo
-#   Chimpanzee
-#   Sum_Orang
-#   Bor_Orang
-#   Siamang
+GENCORE_DIR=
+FQ_PRIMATES_DIR=
 
-rm -f gencore-primates-fq-out.txt
+rm -rf fq-primates
 
-source ~/scripts/activate_conda
+mkdir fq-primates
+cd fq-primates
 
-/bin/time -v ./gencore fq \
+ls -1 "${FQ_PRIMATES_DIR}" | sed "s|^|${FQ_PRIMATES_DIR}/|" > input.txt
+
+echo "Gorilla" > shortnames.txt
+echo "Bonobo" >> shortnames.txt
+echo "Chimpanzee" >> shortnames.txt
+echo "Sum Orang" >> shortnames.txt
+echo "Bor Orang" >> shortnames.txt
+echo "Siamang" >> shortnames.txt
+
+/bin/time -v ${GENCORE_DIR}/gencore fq \
+    -i input.txt \
+    -s shortnames.txt \
+    -l 4 \
+    -t 6 \
+    -p primates.fq \
+    --min-cc 32 \
+    -v > gencore-primates-fq-out.txt 2>&1
+
+python3 ${GENCORE_DIR}/phylowizard.py primates.fq.set.evol.lvl4.phy >> gencore-primates-fq-out.txt 2>&1
+
+/bin/time -v ${GENCORE_DIR}/gencore fq \
     -i input.txt \
     -s shortnames.txt \
     -l 5 \
     -t 6 \
     -p primates.fq \
     --min-cc 32 \
-    -v > gencore-primates-fq-out.txt 2>&1
+    -v >> gencore-primates-fq-out.txt 2>&1
 
-/bin/time -v python3 phylowizard.py primates.fq.set.jc.lvl5.phy >> gencore-primates-fq-out.txt 2>&1
+python3 ${GENCORE_DIR}/phylowizard.py primates.fq.set.evol.lvl5.phy >> gencore-primates-fq-out.txt 2>&1
 
-/bin/time -v ./gencore fq \
+/bin/time -v ${GENCORE_DIR}/gencore fq \
     -i input.txt \
     -s shortnames.txt \
     -l 6 \
@@ -110,6 +115,6 @@ source ~/scripts/activate_conda
     --min-cc 32 \
     -v >> gencore-primates-fq-out.txt 2>&1
 
-/bin/time -v python3 phylowizard.py primates.fq.set.jc.lvl6.phy >> gencore-primates-fq-out.txt 2>&1
+python3 ${GENCORE_DIR}/phylowizard.py primates.fq.set.evol.lvl6.phy >> gencore-primates-fq-out.txt 2>&1
 
-conda deactivate
+cd ..
