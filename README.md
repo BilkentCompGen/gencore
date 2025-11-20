@@ -158,6 +158,8 @@ For processing genome reads with specific core count limits:
 ./gencore fq -i reads_files.txt --min-cc 5 --max-cc 100 -o reads.cores -p reads_prefix
 ```
 
+**NOTE**: You may visit the [repository](https://github.com/akmami/gencore-test) to see a simple pipeline test.
+
 ---
 
 ## Input Data Format
