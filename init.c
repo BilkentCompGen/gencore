@@ -189,6 +189,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     char *filename_outputs = NULL;
     sim_calculation_type sct = DEFAULT_SIM_CALC_MODE;
     int lcp_level = DEFAULT_LCP_LEVEL;
+    int core_span = DEFAULT_CORE_OUTSPAN;
     int write_lcpt = DEFAULT_WRITE_LCP_CORES;
     int verbose = DEFAULT_VERBOSE;
 
@@ -197,13 +198,16 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     char *endptr;
 
     // Parsing options
-    while ((opt = getopt_long(argc, argv, "i:l:t:o:p:s:v", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:l:e:t:o:p:s:v", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'i':
                 filename_inputs = optarg;
                 break;
             case 'l':
                 lcp_level = atoi(optarg);
+                break;
+            case 'e':
+                core_span = atoi(optarg);
                 break;
             case 't':
                 program_args->n_threads = atoi(optarg);
@@ -257,6 +261,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     program_args->n_genomes = get_line_count(filename_inputs);
     program_args->sct = sct;
     program_args->lcp_level = lcp_level;
+    program_args->core_span = core_span;
     program_args->write_lcpt = write_lcpt;
     program_args->verbose = verbose;
 
@@ -279,7 +284,8 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
         (*genome_args)[i].outFileName = NULL;
         (*genome_args)[i].cores = NULL;
         (*genome_args)[i].core_count = 0;
-        (*genome_args)[i].total_len = 0.0;
+        (*genome_args)[i].total_core_len = 0;
+        (*genome_args)[i].total_genome_len = 0;
         (*genome_args)[i].sct = sct;
         (*genome_args)[i].lcp_level = lcp_level;
         (*genome_args)[i].write_lcpt = write_lcpt;
@@ -413,7 +419,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     }
 
     // log parameters
-    log1(INFO, "%s, threads: %d, LCP: %d, mode: %s, prefix: %s", mode2str(program_args->mode), program_args->n_threads, program_args->lcp_level, sct2str(program_args->sct), program_args->prefix);
+    log1(INFO, "%s, threads: %d, LCP: %d, span: %d, mode: %s, prefix: %s", mode2str(program_args->mode), program_args->n_threads, program_args->lcp_level, program_args->core_span, sct2str(program_args->sct), program_args->prefix);
 
     if ((*genome_args)[0].write_lcpt) { 
         log1(INFO, "Program will write cores to files.");

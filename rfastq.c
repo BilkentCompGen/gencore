@@ -101,7 +101,7 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_inpu
     // initialize lcp cores array (for each file)
     simple_core **cores = (simple_core **)malloc(sizeof(simple_core *) * file_count);
     uint64_t *sizes = (uint64_t *)malloc(sizeof(uint64_t) * file_count);
-    
+
     dir = opendir(dir_name);
     if (dir == NULL) {
         log1(ERROR, "Couldn't open dir %s.", dir_name);
@@ -112,8 +112,12 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_inpu
         log1(INFO, "Processing %s...", genome_args->shortName);
     }
 
+    genome_args->total_core_len = 0;
+    genome_args->total_genome_len = 0;
+
     int index = 0;
     uint64_t pre_filtering_total_core_count = 0;
+    
     while ((entry = readdir(dir)) != NULL) {
         if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 && ends_with_fq(entry->d_name)) {
             snprintf(full_path, sizeof(full_path), "%s/%s", dir_name, entry->d_name);
@@ -124,7 +128,6 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_inpu
                     cores[index] = genome_args->cores;
                     pre_filtering_total_core_count += genome_args->core_count;
                     sizes[index++] = genome_args->core_count;
-                    
                 }
             }
         }
@@ -189,8 +192,10 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type 
         args[i].buffer_len = -1;
         args[i].lcp_level = program_args->lcp_level;
         args[i].core_count = 0;
-        args[i].estimated_core_count = estimated_core_size / program_args->n_threads;
-        args[i].time_stats = (time_stats_t){0, 0, 0, 0};
+        args[i].total_core_len = 0;
+        args[i].total_core_cap = estimated_core_size / program_args->n_threads;
+        args[i].total_genome_len = 0;
+        args[i].time_stats = (time_stats_t){0, 0, 0, 0, 0, 0};
         tpool_add_work(tm, process_reads, args + i);
     }
 
@@ -203,10 +208,18 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type 
     
     kseq_t *seq = kseq_init(in);
 
+    double total_idle_time = 0;
+    time_t running_start, running_end;
+    time(&running_start);
+
     while (kseq_read(seq) >= 0) {
         if (buffer_len + seq->seq.l >= FASTQ_WORKER_BUFFER_SIZE) {
             // batch is full, assign to available thread and reset
+            time_t idle_start, idle_end;
+            time(&idle_start);
             int idx = wait_for_available(available_buffers, program_args->n_threads);
+            time(&idle_end);
+            total_idle_time += difftime(idle_end, idle_start);
 
             args[idx].buffer = buffer;
             args[idx].buffer_len = buffer_len;
@@ -225,6 +238,7 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type 
         // add delimiter if to know read boundaries
         buffer[buffer_len++] = SEPERATOR; 
     }
+    time(&running_end);
 
     kseq_destroy(seq);
     gzclose(in);
@@ -262,18 +276,24 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type 
     genome_args->cores = cores;
 
     // final merging
-    estimated_core_size = 0;
-    time_stats_t temp = (time_stats_t){0, 0, 0, 0};
+    uint64_t total_core_cap = 0;
+    time_stats_t temp = (time_stats_t){0, 0, 0, 0, 0, 0};
     for (int i = 0; i < program_args->n_threads; i++) {
         // add time stats
+        temp.running += args[i].time_stats.running;
+        temp.idle += args[i].time_stats.idle;
         temp.lcp += args[i].time_stats.lcp;
         temp.merging += args[i].time_stats.merging;
         temp.sorting += args[i].time_stats.sorting;
         temp.filtering += args[i].time_stats.filtering;
         // sum total capacities
-        estimated_core_size += args[i].estimated_core_count;
+        total_core_cap += args[i].total_core_cap;
+        genome_args->total_core_len += args[i].total_core_len;
+        genome_args->total_genome_len += args[i].total_genome_len;
     }
-        
+    
+    genome_args->time_stats.running += temp.running;
+    genome_args->time_stats.idle += temp.idle;
     genome_args->time_stats.lcp += temp.lcp;
     genome_args->time_stats.merging += temp.merging;
     genome_args->time_stats.sorting += temp.sorting;
@@ -284,10 +304,12 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type 
         if (fq_type == FQT_DIR) {
             int skip_index;
             GET_FILENAME_INDEX(genome_args->inFileName, skip_index);
-            log1(INFO, "Main - fq: %s, cc: %ld/%ld, LCP [%d:%02d:%02d], merge: [%d:%02d:%02d], sort: [%d:%02d:%02d], filter: [%d:%02d:%02d]", 
+            log1(INFO, "Main - fq: %s, cc: %ld/%ld, idle: %.2f/%.2f, LCP [%d:%02d:%02d], merge: [%d:%02d:%02d], sort: [%d:%02d:%02d], filter: [%d:%02d:%02d]", 
                 genome_args->inFileName + skip_index,
                 genome_args->core_count,
-                estimated_core_size,
+                total_core_cap,
+                total_idle_time / difftime(running_end, running_start),
+                (temp.idle) / (temp.idle + temp.running) * 100,
                 (int)temp.lcp/3600, ((int)temp.lcp%3600)/60, (int)temp.lcp%60,
                 (int)temp.merging/3600, ((int)temp.merging%3600)/60, (int)temp.merging%60,
                 (int)temp.sorting/3600, ((int)temp.sorting%3600)/60, (int)temp.sorting%60,
@@ -298,7 +320,7 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type 
             log1(INFO, "Summary - name: %s, cc: %ld/%ld, LCP [%d:%02d:%02d], merge: [%d:%02d:%02d], sort: [%d:%02d:%02d], filter: [%d:%02d:%02d]", 
                 genome_args->shortName,
                 genome_args->core_count,
-                estimated_core_size,
+                total_core_cap,
                 (int)genome_args->time_stats.lcp/3600, ((int)genome_args->time_stats.lcp%3600)/60, (int)genome_args->time_stats.lcp%60,
                 (int)genome_args->time_stats.merging/3600, ((int)genome_args->time_stats.merging%3600)/60, (int)genome_args->time_stats.merging%60,
                 (int)genome_args->time_stats.sorting/3600, ((int)genome_args->time_stats.sorting%3600)/60, (int)genome_args->time_stats.sorting%60,
@@ -318,8 +340,12 @@ void process_reads(void *args) {
     atomic_int *available = fastq_worker_args->available;
     int lcp_level = fastq_worker_args->lcp_level;
     double lcp_exec_time = 0;
+    double total_idle_time = 0;
+    double total_running_time = 0;
     uint64_t core_count = 0;
-    uint64_t core_capacity = fastq_worker_args->estimated_core_count;
+    uint64_t total_core_len = 0;
+    uint64_t total_genome_len = 0;
+    uint64_t core_capacity = fastq_worker_args->total_core_cap;
     simple_core *cores = (simple_core *)malloc(sizeof(simple_core) * core_capacity);
     if (!cores) {
         log3(ERROR, &console_mutex_rfastq, "Couldn't allocated core array.");
@@ -331,6 +357,9 @@ void process_reads(void *args) {
     while ( atomic_load(available) != THREAD_EXIT_SIGNAL) {
 
         if ( atomic_load(available) == THREAD_BUSY ) {
+
+            time_t running_start, running_end;
+            time(&running_start);
 
             char *sequence = fastq_worker_args->buffer;
             int buffer_len = fastq_worker_args->buffer_len;
@@ -361,9 +390,13 @@ void process_reads(void *args) {
                     cores = temp;
                 }
 
-                for (int i = 0; i < str_fwd.size; i++) {
-                    cores[core_count] = ((uint64_t)str_fwd.cores[i].label << 32) + (str_fwd.cores[i].end - str_fwd.cores[i].start);
-                    core_count++;
+                if (str_fwd.size) {
+                    for (int i = 0; i < str_fwd.size; i++) {
+                        cores[core_count] = ((uint64_t)str_fwd.cores[i].label << 32) + (str_fwd.cores[i].end - str_fwd.cores[i].start);
+                        core_count++;
+                        total_core_len += (str_fwd.cores[i].end - str_fwd.cores[i].start);
+                    }
+                    total_genome_len = str_fwd.cores[str_fwd.size-1].end - str_fwd.cores[0].start;
                 }
                 
                 free_lps(&str_fwd);
@@ -386,9 +419,13 @@ void process_reads(void *args) {
                     cores = temp;
                 }
 
-                for (int i = 0; i < str_rev.size; i++) {
-                    cores[core_count] = ((uint64_t)str_rev.cores[i].label << 32) + (str_rev.cores[i].end - str_rev.cores[i].start);
-                    core_count++;
+                if (str_rev.size) {
+                    for (int i = 0; i < str_rev.size; i++) {
+                        cores[core_count] = ((uint64_t)str_rev.cores[i].label << 32) + (str_rev.cores[i].end - str_rev.cores[i].start);
+                        core_count++;
+                        total_core_len += (str_rev.cores[i].end - str_rev.cores[i].start);
+                    }
+                    total_genome_len = str_rev.cores[str_rev.size-1].end - str_rev.cores[0].start;
                 }
                 
                 free_lps(&str_rev);
@@ -400,8 +437,15 @@ void process_reads(void *args) {
             fastq_worker_args->buffer_len = -1;
 
             atomic_store(available, THREAD_AVAILABLE);
+            
+            time(&running_end);
+            total_running_time += difftime(running_end, running_start);
         } else {
+            time_t idle_start, idle_end;
+            time(&idle_start);
             for (int i = 0; i < SHORT_WAIT_TIME; i++) cpu_relax();
+            time(&idle_end);
+            total_idle_time += difftime(idle_end, idle_start);
         }
     }
 
@@ -413,249 +457,11 @@ void process_reads(void *args) {
 
     fastq_worker_args->cores = cores;
     fastq_worker_args->core_count = core_count;
-    fastq_worker_args->estimated_core_count = core_capacity;
+    fastq_worker_args->total_core_cap = core_capacity;
+    fastq_worker_args->total_core_len = total_core_len;
+    fastq_worker_args->total_genome_len = total_genome_len;
+    fastq_worker_args->time_stats.idle = total_idle_time;
+    fastq_worker_args->time_stats.running = total_running_time;
     fastq_worker_args->time_stats.lcp = lcp_exec_time;
     fastq_worker_args->time_stats.sorting = difftime(end, start);
-}
-
-void read_fastqs_trivial(g_args_t *genome_args, p_args_t *program_args) {
-    
-    struct tpool *tm;
-
-    tm = tpool_create(program_args->n_threads);
-
-    for (int i = 0; i < program_args->n_genomes; i++) {
-        struct stat s;
-        if (lstat(genome_args->inFileName, &s) == 0) {
-            if (S_ISDIR(s.st_mode)) { // directory
-                tpool_add_work(tm, process_dir_fastq_trivial, genome_args+i);
-            } else if (S_ISREG(s.st_mode)) { // file
-                tpool_add_work(tm, read_fastq_trivial, genome_args+i);
-            } else if (S_ISLNK(s.st_mode)) {
-                // symbolic link
-            } else {
-                // something else
-            }
-        } else {
-            //error
-            log1(ERROR, "Couldn't process %s.", genome_args->inFileName);
-        }
-    }
-
-    tpool_wait(tm);
-
-    tpool_destroy(tm);
-}
-
-void process_dir_fastq_trivial(void *arg) {
-
-    g_args_t *genome_args = (g_args_t *)arg;
-
-    DIR *dir;
-    struct dirent *entry;
-    dir = opendir(genome_args->inFileName);
-    if (dir == NULL) {
-        log1(ERROR, "Couldn't open dir %s.", genome_args->inFileName);
-        return;
-    }
-
-    char *dir_name = genome_args->inFileName;
-
-    int file_count = 0;
-    struct stat file_info;
-    char full_path[1024];
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 && ends_with_fq(entry->d_name)) {
-            snprintf(full_path, sizeof(full_path), "%s/%s", dir_name, entry->d_name);
-            if (stat(full_path, &file_info) == 0) {
-                if (S_ISREG(file_info.st_mode)) {
-                    file_count++;
-                }
-            }
-        }
-    }
-
-    closedir(dir);
-
-    dir = opendir(dir_name);
-    if (dir == NULL) {
-        log1(ERROR, "Couldn't open dir %s.", dir_name);
-        return;
-    }
-
-    int temp_filter = genome_args->apply_filter;
-    sim_calculation_type temp_mode = genome_args->sct;
-
-    simple_core **cores = (simple_core **)malloc(sizeof(simple_core *) * file_count);
-    uint64_t *sizes = (uint64_t *)malloc(sizeof(uint64_t) * file_count);
-    int index = 0;
-    genome_args->apply_filter = 0;
-    genome_args->sct = VECTOR;
-    while ((entry = readdir(dir)) != NULL) {
-        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 && ends_with_fq(entry->d_name)) {
-            snprintf(full_path, sizeof(full_path), "%s/%s", dir_name, entry->d_name);
-            if (stat(full_path, &file_info) == 0) {
-                if (S_ISREG(file_info.st_mode)) {
-                    genome_args->inFileName = full_path;
-                    read_fastq_trivial((void*)genome_args);
-                    cores[index] = genome_args->cores;
-                    sizes[index++] = genome_args->core_count;
-                }
-            }
-        }
-    }
-    closedir(dir);
-
-    merge_sorted_arrays(cores, sizes, file_count, genome_args);
-    genome_args->inFileName = dir_name;
-    genome_args->apply_filter = temp_filter;
-    genome_args->sct = temp_mode;
-
-    if (genome_args->verbose) {
-        log1(INFO, "Summary - name: %s, cc: %ld, LCP [%d:%02d:%02d], merge: [%d:%02d:%02d], sort: [%d:%02d:%02d], filter: [%d:%02d:%02d]", 
-            genome_args->shortName,
-            genome_args->core_count,
-            (int)genome_args->time_stats.lcp/3600, ((int)genome_args->time_stats.lcp%3600)/60, (int)genome_args->time_stats.lcp%60,
-            (int)genome_args->time_stats.merging/3600, ((int)genome_args->time_stats.merging%3600)/60, (int)genome_args->time_stats.merging%60,
-            (int)genome_args->time_stats.sorting/3600, ((int)genome_args->time_stats.sorting%3600)/60, (int)genome_args->time_stats.sorting%60,
-            (int)genome_args->time_stats.filtering/3600, ((int)genome_args->time_stats.filtering%3600)/60, (int)genome_args->time_stats.filtering%60
-        );
-    }
-}
-
-void read_fastq_trivial(void *arg) {
-
-    time_t start, point1, point2;
-    time(&start);
-
-    g_args_t *genome_args = (g_args_t *)arg;
-    uint64_t estimated_core_size = est_core_fq(genome_args->inFileName, genome_args->lcp_level);
-    if (!estimated_core_size) {
-        log3(ERROR, &console_mutex_rfastq, "Couldn't calculate core size for %s", genome_args->inFileName);
-        return;
-    }
-    
-    genome_args->cores = (simple_core *)malloc(sizeof(simple_core) * estimated_core_size);
-    if (genome_args->cores == NULL) {
-        log3(ERROR, &console_mutex_rfastq, "Thread coultdn't allocate memory - in: %s", estimated_core_size);
-        return;
-    }
-    genome_args->core_count = 0;
-    genome_args->total_len = 0;
-
-    gzFile in = gzopen(genome_args->inFileName, "r");
-    if (in == NULL) {
-        log3(ERROR, &console_mutex_rfastq, "Error opening file %s", genome_args->inFileName);
-        return;
-    }
-
-    char *buffer = malloc(INITIAL_SEQUENCE_SIZE);
-    if (!buffer) { 
-        log3(ERROR, &console_mutex_rfastq, "Malloc failed."); 
-        return; 
-    }
-
-    uint64_t buffer_len = 0;
-    kseq_t *seq = kseq_init(in);
-
-    while (kseq_read(seq) >= 0) {
-        if (buffer_len + seq->seq.l >= INITIAL_SEQUENCE_SIZE) {
-            // batch is full, process and reset
-            process_reads_trivial(buffer, buffer_len, &estimated_core_size, genome_args);
-            buffer_len = 0;
-        }
-
-        memcpy(buffer + buffer_len, seq->seq.s, seq->seq.l);
-        buffer_len += seq->seq.l;
-        // add delimiter if to know read boundaries
-        buffer[buffer_len++] = SEPERATOR; 
-    }
-
-    if (buffer_len) {
-        process_reads_trivial(buffer, buffer_len, &estimated_core_size, genome_args);
-    }
-
-    kseq_destroy(seq);
-    gzclose(in);
-
-    time(&point1);
-    double diff1 = difftime(point1, start);
-
-    // sort and filter the cores
-    genSign(genome_args);
-
-    time(&point2);
-    double diff2 = difftime(point2, point1);
-
-    // log ending of processing fastq
-    if (genome_args->verbose) {
-        log3(INFO, &console_mutex_rfastq, "Thread - %s, LCP [%d:%d:%d], gen-sign [%d:%d:%d], cc: %lu/%lu", genome_args->inFileName, (int)(diff1/3600), (int)(((int)(diff1)%3600)/60), (int)(diff1)%60, (int)(diff2/3600), (int)(((int)(diff2)%3600)/60), (int)(diff2)%60, genome_args->core_count, estimated_core_size);
-    }
-}
-
-void process_reads_trivial(char *sequence, uint64_t seq_size, uint64_t *capacity, g_args_t *genome_args) {
-
-    uint64_t cap = *capacity;
-    uint64_t start = 0;
-
-    while (start < seq_size) {
-        uint64_t end = start;
-
-        while (end < seq_size && sequence[end] != SEPERATOR) end++;
-
-        // process forward
-        struct lps str_fwd;
-        init_lps(&str_fwd, sequence+start, end - start);
-        lps_deepen(&str_fwd, genome_args->lcp_level);
-
-        uint64_t core_count = genome_args->core_count;
-
-        if (cap <= core_count + str_fwd.size) {
-            cap = cap * 1.5;
-            simple_core *temp = (simple_core *)realloc(genome_args->cores, sizeof(simple_core) * cap);
-            if (temp == NULL) {
-                log3(ERROR, &console_mutex_rfastq, "Couldn't increase cores array size.");
-                return;
-            }
-            genome_args->cores = temp;
-        }
-
-        simple_core *cores = genome_args->cores;
-
-        for (int i = 0; i < str_fwd.size; i++) {
-            cores[core_count] = ((uint64_t)str_fwd.cores[i].label << 32) + (str_fwd.cores[i].end-str_fwd.cores[i].start);
-            core_count++;
-        }
-        
-        free_lps(&str_fwd);
-
-        // process reverse complement
-        struct lps str_rev;
-        init_lps2(&str_rev, sequence+start, end-start);
-        lps_deepen(&str_rev, genome_args->lcp_level);
-
-        if (cap <= core_count + str_rev.size) {
-            cap = cap * 1.5;
-            simple_core *temp = (simple_core *)realloc(genome_args->cores, sizeof(simple_core) * cap);
-            if (temp == NULL) {
-                log3(ERROR, &console_mutex_rfastq, "Couldn't increase cores array size.");
-                return;
-            }
-            genome_args->cores = temp;
-        }
-
-        cores = genome_args->cores;
-
-        for (int i = 0; i < str_rev.size; i++) {
-            cores[core_count] = ((uint64_t)str_rev.cores[i].label << 32) + (str_rev.cores[i].end-str_rev.cores[i].start);
-            core_count++;
-        }
-        
-        free_lps(&str_rev);
-
-        genome_args->core_count = core_count;
-        *capacity = cap;
-
-        start = end + 1;
-    }
 }

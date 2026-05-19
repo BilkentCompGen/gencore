@@ -23,14 +23,14 @@ NUMA_INC 		:=
 NUMA_LIB 		:=
 
 ifneq ($(shell pkg-config --exists libnuma && echo yes),)
-    NUMA_AVAILABLE := 1
-    NUMA_INC := $(shell pkg-config --cflags libnuma)
-    NUMA_LIB := $(shell pkg-config --libs libnuma)
-else
-    ifneq ($(shell echo '#include <numa.h>' | $(CC) -E - 2>/dev/null >/dev/null && echo yes),)
-        NUMA_AVAILABLE := 1
-        NUMA_LIB := -lnuma
-    endif
+		NUMA_AVAILABLE := 1
+		NUMA_INC := $(shell pkg-config --cflags libnuma)
+		NUMA_LIB := $(shell pkg-config --libs libnuma)
+	else
+	ifneq ($(shell printf '\#include <numa.h>\n' | $(CC) -E - >/dev/null 2>&1 && echo yes),)
+		NUMA_AVAILABLE := 1
+		NUMA_LIB := -lnuma
+	endif
 endif
 
 # Add macro and libs accordingly
@@ -98,12 +98,6 @@ install-lcptools:
 	@echo "Installing lcptool"
 	cd lcptools && \
 	make install PREFIX=$(CURRENT_DIR)/lcptools
-
-reinstall-lcptools:
-	@echo "Re-installing lcptools"
-	git submodule deinit -f -- lcptools
-	rm -rf lcptools
-	git submodule update --init --recursive
 
 recompile-lcptools:
 	cd lcptools && \

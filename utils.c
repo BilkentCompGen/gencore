@@ -95,7 +95,7 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args) {
             double diceDist = 1.0 - calcDiceSim(interSize, genome_args[i].core_count, genome_args[j].core_count);
             double jaccardDist = 1.0 - calcJaccardSim(interSize, unionSize);
             
-            double avg_len = (genome_args[i].total_len+genome_args[j].total_len)/(genome_args[i].core_count+genome_args[j].core_count);
+            double avg_len = (double)(genome_args[i].total_genome_len + genome_args[j].total_genome_len) / (double)(genome_args[i].core_count + genome_args[j].core_count);
             double evolDist = calcEvolDist(1.0 - jaccardDist, avg_len);
 
             dice[i][j] = diceDist;
@@ -225,7 +225,6 @@ void genSign(void *args) {
 
     simple_core *cores = genome_args->cores;
     uint64_t len = genome_args->core_count;
-    double total_len = genome_args->total_len;
 
     time_t start, breakpoint, end;
     time(&start);
@@ -266,13 +265,11 @@ void genSign(void *args) {
 
     uint64_t index = 0;
     uint64_t i = 1;
-    total_len += cores[0] & 0xFFFFFFFF;
 
     while (i<len) {
         if (cores[index] != cores[i]) {
             index++;
             cores[index] = cores[i];
-            total_len += cores[i] & 0xFFFFFFFF;
         }
         i++;
     }
@@ -294,7 +291,6 @@ void genSign(void *args) {
     }
 
     genome_args->core_count = index; 
-    genome_args->total_len = total_len;
 
     time(&end);
     genome_args->time_stats.filtering = difftime(end, breakpoint);
@@ -507,7 +503,6 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
     uint32_t max_cc = genome_args->max_cc;
     
     genome_args->core_count = 0;
-    genome_args->total_len = 0;
     
     time_t start, end;
     time(&start);
@@ -551,7 +546,6 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
 
     uint64_t index = 0;
     uint64_t i = 0;
-    double total_len = 0;
 
     while (i < total_size) {
         uint64_t freq = 1;
@@ -559,7 +553,6 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
         for (uint64_t j = i + 1; j < total_size && result[i] == result[j]; j++, freq++);
 
         if (min_cc<=freq && freq<=max_cc) {
-            total_len += result[i] & 0xFFFFFFFF;
             result[index++] = result[i];
         }
 
@@ -568,9 +561,7 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
 
     time(&end);
     genome_args->time_stats.filtering += difftime(end, start);
-
     genome_args->core_count = index;
-    genome_args->total_len = total_len;
 
     // cleanup
     for (uint64_t i = 0; i < file_count; i++) {
@@ -638,4 +629,60 @@ uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) 
     args->time_stats.merging += difftime(end, start);
     
     return result_index;
+}
+
+uint32_t MurmurHash3_32(const void *key, int len, uint32_t seed) {
+    const uint8_t *data = (const uint8_t *)key;
+    const int nblocks = len / 4;
+
+    uint32_t h1 = seed;
+
+    const uint32_t c1 = 0xcc9e2d51;
+    const uint32_t c2 = 0x1b873593;
+
+    // Body: Process blocks of 4 bytes at a time
+    const uint32_t *blocks = (const uint32_t *)(data + nblocks * 4);
+
+    for (int i = -nblocks; i; i++) {
+        uint32_t k1 = blocks[i];
+
+        k1 *= c1;
+        k1 = (k1 << 15) | (k1 >> (32 - 15));
+        k1 *= c2;
+
+        h1 ^= k1;
+        h1 = (h1 << 15) | (h1 >> (32 - 15)); // it should be (h1 << 13) | (h1 >> (32 - 13)) but left at it is, let it be a legacy :)
+        h1 = h1 * 5 + 0xe6546b64;
+    }
+
+    // Tail: Process remaining bytes
+    const uint8_t *tail = (const uint8_t *)(data + nblocks * 4);
+
+    uint32_t k1 = 0;
+
+    switch (len & 3) {
+    case 3:
+        k1 ^= tail[2] << 16;
+        break;
+    case 2:
+        k1 ^= tail[1] << 8;
+        break;
+    case 1:
+        k1 ^= tail[0];
+        k1 *= c1;
+        k1 = (k1 << 15) | (k1 >> (32 - 15));
+        k1 *= c2;
+        h1 ^= k1;
+    }
+
+    // Finalization: Mix the hash to ensure the last few bits are fully mixed
+    h1 ^= len;
+
+    /* fmix32 */
+    h1 ^= h1 >> 16;
+    h1 *= 0x85ebca6b;
+    h1 ^= h1 >> 13;
+    h1 *= 0xc2b2ae35;
+    h1 ^= h1 >> 16;
+    return h1;
 }
