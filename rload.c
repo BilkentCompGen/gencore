@@ -72,6 +72,6 @@ void read_lcpt(void *arg) {
 
     // log ending of processing fasta
     if (genome_args->verbose) {
-        log1(INFO, "Thread ID: %s ended processing %s, size: %ld", pthread_self(), genome_args->inFileName, genome_args->core_count);
+        log1(INFO, "Thread ID: %s ended processing %s, size: %ld", pthread_self(), genome_args->inFileName, genome_args->result.count);
     }
 }

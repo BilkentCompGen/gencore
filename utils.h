@@ -19,20 +19,20 @@
 // ---------------------------------------------------------------------------------
 
 /**
- * @brief Stringify the program mode enum `program_mode`.
+ * @brief Stringify the program mode enum `program_mode_t`.
  * 
  * @param m program mode
  * @return the string version of given parameter
  */
-const char* mode2str(program_mode m);
+const char* mode2str(program_mode_t m);
 
 /**
- * @brief Stringify the similarity calculation mode enum `sim_calculation_type`.
+ * @brief Stringify the similarity calculation mode enum `sim_calculation_type_t`.
  * 
  * @param m sim calculation mode
  * @return the string version of given parameter
  */
-const char* sct2str(sim_calculation_type m);
+const char* sct2str(sim_calculation_type_t m);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
@@ -232,7 +232,7 @@ int ends_with_fq(const char *str);
  * @param ... Additional arguments for the format string.
  * @return Always returns 1 upon completion.
  */
-int log1(LogLevel level, const char *format, ...);
+int log1(log_level_t level, const char *format, ...);
 
 /**
  * @brief Logs a formatted message with a timestamp and log level in thread-safe 
@@ -249,7 +249,7 @@ int log1(LogLevel level, const char *format, ...);
  * @param ... Additional arguments for the format string.
  * @return Always returns 1 upon completion.
  */
-int log3(LogLevel level, pthread_mutex_t *mutex, const char *format, ...);
+int log3(log_level_t level, pthread_mutex_t *mutex, const char *format, ...);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------

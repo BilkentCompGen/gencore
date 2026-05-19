@@ -38,12 +38,12 @@ void printFqUsage() {
     printf("\t-v              Verbose. [Default: %d]\n\n", DEFAULT_VERBOSE);
 }
 
-void printUsage2(program_mode mode) {
+void printUsage2(program_mode_t mode) {
     switch(mode) {
-    case FA:
+    case PROGRAM_MODE_FA:
         printFaUsage();
         break;
-    case FQ:
+    case PROGRAM_MODE_FQ:
         printFqUsage();
         break;
     default:
@@ -147,17 +147,17 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     uint32_t max_cc;
 
     if (strcmp(argv[1], "fa") == 0) {
-        program_args->mode = FA;
+        program_args->mode = PROGRAM_MODE_FA;
         min_cc = DEFAULT_FA_MIN_CC;
         max_cc = DEFAULT_FA_MAX_CC;
         apply_filter = 0;
     } else if (strcmp(argv[1], "fq") == 0) {
-        program_args->mode = FQ;
+        program_args->mode = PROGRAM_MODE_FQ;
         min_cc = DEFAULT_FQ_MIN_CC;
         max_cc = DEFAULT_FQ_MAX_CC;
         apply_filter = 1;
     } else if (strcmp(argv[1], "ld") == 0) {
-        program_args->mode = LOAD;
+        program_args->mode = PROGRAM_MODE_LOAD;
         min_cc = 0;
         max_cc = UINT32_MAX;
         apply_filter = 0;
@@ -187,7 +187,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     char *filename_inputs = NULL;
     char *filename_names = NULL;
     char *filename_outputs = NULL;
-    sim_calculation_type sct = DEFAULT_SIM_CALC_MODE;
+    sim_calculation_type_t sct = DEFAULT_SIM_CALC_MODE;
     int lcp_level = DEFAULT_LCP_LEVEL;
     int core_span = DEFAULT_CORE_OUTSPAN;
     int write_lcpt = DEFAULT_WRITE_LCP_CORES;
@@ -242,10 +242,10 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
                 apply_filter = 1;
                 break;
             case 5: // --set
-                sct = SET;
+                sct = SIM_CALC_SET;
                 break;
             case 6: // --vec
-                sct = VECTOR;
+                sct = SIM_CALC_SET;
                 break;
             default:
                 exit(EXIT_FAILURE);
@@ -276,20 +276,17 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     }
 
     for (int i = 0; i < program_args->n_genomes; i++) {
-        (*genome_args)[i].apply_filter = apply_filter;
-        (*genome_args)[i].min_cc = min_cc;
-        (*genome_args)[i].max_cc = max_cc;
         (*genome_args)[i].inFileName = NULL;
         (*genome_args)[i].shortName = NULL;
         (*genome_args)[i].outFileName = NULL;
-        (*genome_args)[i].cores = NULL;
-        (*genome_args)[i].core_count = 0;
-        (*genome_args)[i].total_core_len = 0;
-        (*genome_args)[i].total_genome_len = 0;
-        (*genome_args)[i].sct = sct;
+        (*genome_args)[i].apply_filter = apply_filter;
         (*genome_args)[i].lcp_level = lcp_level;
         (*genome_args)[i].write_lcpt = write_lcpt;
         (*genome_args)[i].verbose = verbose;
+        (*genome_args)[i].min_cc = min_cc;
+        (*genome_args)[i].max_cc = max_cc;
+        (*genome_args)[i].sct = sct;
+        memset(&((*genome_args)[i].result), 0, sizeof(core_result_t));
         memset(&((*genome_args)[i].time_stats), 0, sizeof(time_stats_t));
     }
 

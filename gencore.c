@@ -18,13 +18,13 @@ int main(int argc, char **argv) {
 
     // process files program
     switch (program_args.mode) {
-    case FA:
+    case PROGRAM_MODE_FA:
         read_fastas(genome_args, &program_args);
         break;
-    case FQ:
+    case PROGRAM_MODE_FQ:
         read_fastqs(genome_args, &program_args);
         break;
-    case LOAD:
+    case PROGRAM_MODE_LOAD:
         read_lcpts(genome_args, &program_args);
         break;
     default:

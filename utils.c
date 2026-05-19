@@ -1,18 +1,18 @@
 #include "utils.h"
 
-const char* mode2str(program_mode m) {
+const char* mode2str(program_mode_t m) {
     switch(m) {
-        case FA: return "FA";
-        case FQ: return "FQ";
-        case LOAD: return "LOAD";
+        case PROGRAM_MODE_FA: return "FA";
+        case PROGRAM_MODE_FQ: return "FQ";
+        case PROGRAM_MODE_LOAD: return "LOAD";
         default: return "UNKNOWN";
     }
 }
 
-const char* sct2str(sim_calculation_type m) {
+const char* sct2str(sim_calculation_type_t m) {
     switch(m) {
-        case SET: return "set";
-        case VECTOR: return "vec";
+        case SIM_CALC_SET: return "set";
+        case SIM_CALC_VECTOR: return "vec";
         default: return "UNKNOWN";
     }
 }
@@ -21,13 +21,13 @@ void calcUISize(const g_args_t *argument1, const g_args_t *argument2, uint64_t *
     
     uint64_t is = 0;
     uint64_t us = 0;
-    uint64_t size1 = argument1->core_count;
-    uint64_t size2 = argument2->core_count;
+    uint64_t size1 = argument1->result.count;
+    uint64_t size2 = argument2->result.count;
     uint64_t index1 = 0;
     uint64_t index2 = 0;
 
-    const simple_core *cores1 = argument1->cores;
-    const simple_core *cores2 = argument2->cores;
+    const simple_core *cores1 = argument1->result.cores;
+    const simple_core *cores2 = argument2->result.cores;
 
     while (index1 < size1 && index2 < size2) {
         us++;
@@ -92,10 +92,10 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args) {
             uint64_t interSize, unionSize;
             calcUISize(&(genome_args[i]), &(genome_args[j]), &interSize, &unionSize);
 
-            double diceDist = 1.0 - calcDiceSim(interSize, genome_args[i].core_count, genome_args[j].core_count);
+            double diceDist = 1.0 - calcDiceSim(interSize, genome_args[i].result.count, genome_args[j].result.count);
             double jaccardDist = 1.0 - calcJaccardSim(interSize, unionSize);
             
-            double avg_len = (double)(genome_args[i].total_genome_len + genome_args[j].total_genome_len) / (double)(genome_args[i].core_count + genome_args[j].core_count);
+            double avg_len = (double)(genome_args[i].result.total_sequence_len + genome_args[j].result.total_sequence_len) / (double)(genome_args[i].result.count + genome_args[j].result.count);
             double evolDist = calcEvolDist(1.0 - jaccardDist, avg_len);
 
             dice[i][j] = diceDist;
@@ -114,7 +114,7 @@ void calcDistances(const g_args_t *genome_args, const p_args_t* program_args) {
     int lcp_level = genome_args[0].lcp_level;
     
     // Write outputs to files
-    char *program_type = genome_args[0].sct == SET ? "set" : "vec";
+    char *program_type = genome_args[0].sct == SIM_CALC_SET ? "set" : "vec";
     FILE *dice_out, *jaccard_out, *evol_out;
     char filename_buffer[256];
     if (snprintf(filename_buffer, 256, "%s.%s.%s%d.phy", program_args->prefix, program_type, "dice.lvl", lcp_level) < 0) {
@@ -223,8 +223,8 @@ void genSign(void *args) {
 
     g_args_t *genome_args = (g_args_t *)args;
 
-    simple_core *cores = genome_args->cores;
-    uint64_t len = genome_args->core_count;
+    simple_core *cores = genome_args->result.cores;
+    uint64_t len = genome_args->result.count;
 
     time_t start, breakpoint, end;
     time(&start);
@@ -253,11 +253,11 @@ void genSign(void *args) {
 
             i += freq;
         }
-        genome_args->core_count = index;
+        genome_args->result.count = index;
         len = index;
     }
     
-    if (genome_args->sct == VECTOR) {
+    if (genome_args->sct == SIM_CALC_VECTOR) {
         time(&end);
         genome_args->time_stats.filtering = difftime(end, breakpoint);
         return;
@@ -279,18 +279,18 @@ void genSign(void *args) {
     if (index) {
         simple_core *new_cores = (simple_core *)realloc(cores, sizeof(simple_core) * index);
         if (new_cores) {
-            genome_args->cores = new_cores;
+            genome_args->result.cores = new_cores;
         } else {
             free(cores);
-            genome_args->cores = NULL;
+            genome_args->result.cores = NULL;
             index = 0;
         }
     } else {
         free(cores);
-        genome_args->cores = NULL;
+        genome_args->result.cores = NULL;
     }
 
-    genome_args->core_count = index; 
+    genome_args->result.count = index; 
 
     time(&end);
     genome_args->time_stats.filtering = difftime(end, breakpoint);
@@ -354,7 +354,7 @@ int ends_with_fq(const char *str) {
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 
-int log1(LogLevel level, const char *format, ...) {
+int log1(log_level_t level, const char *format, ...) {
     time_t now;
     time(&now);
     struct tm *local = localtime(&now);
@@ -383,7 +383,7 @@ int log1(LogLevel level, const char *format, ...) {
     return 1;
 }
 
-int log3(LogLevel level, pthread_mutex_t *mutex, const char *format, ...) {
+int log3(log_level_t level, pthread_mutex_t *mutex, const char *format, ...) {
     time_t now;
     time(&now);
     struct tm *local = localtime(&now);
@@ -432,10 +432,10 @@ void free_args(g_args_t *genome_args, p_args_t *program_args) {
             free(genome_args[i].outFileName);
         if (genome_args[i].shortName)
             free(genome_args[i].shortName);
-        if (genome_args[i].core_count) {
-            if (genome_args[i].core_count)
-                free(genome_args[i].cores);
-            genome_args[i].core_count = 0;
+        if (genome_args[i].result.count) {
+            if (genome_args[i].result.count)
+                free(genome_args[i].result.cores);
+            genome_args[i].result.count = 0;
         }
     }
 
@@ -502,7 +502,7 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
     uint32_t min_cc = genome_args->min_cc;
     uint32_t max_cc = genome_args->max_cc;
     
-    genome_args->core_count = 0;
+    genome_args->result.count = 0;
     
     time_t start, end;
     time(&start);
@@ -561,7 +561,7 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
 
     time(&end);
     genome_args->time_stats.filtering += difftime(end, start);
-    genome_args->core_count = index;
+    genome_args->result.count = index;
 
     // cleanup
     for (uint64_t i = 0; i < file_count; i++) {
@@ -574,9 +574,9 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
     if (temp) {
         memcpy(temp, result, sizeof(simple_core) * index);
         free(result);
-        genome_args->cores = temp;
+        genome_args->result.cores = temp;
     } else {
-        genome_args->cores = result;
+        genome_args->result.cores = result;
     }
 }
 
@@ -588,14 +588,14 @@ uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) 
     min_heap heap = (min_heap){malloc(sizeof(heap_node) * n_args), 0, n_args};
     uint64_t total_size = 0;
     for (int i = 0; i < n_args; ++i)
-        total_size += args[i].core_count;
+        total_size += args[i].result.count;
 
     uint64_t *result = malloc(total_size * sizeof(uint64_t));
     uint64_t result_index = 0;
 
     for (int i = 0; i < n_args; ++i) {
-        if (args[i].core_count > 0) {
-            heap_push(&heap, (heap_node){args[i].cores[0], i, 0});
+        if (args[i].result.count > 0) {
+            heap_push(&heap, (heap_node){args[i].result.cores[0], i, 0});
         }
     }
 
@@ -604,9 +604,9 @@ uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) 
         result[result_index++] = min.value;
 
         uint64_t next_idx = min.element_index + 1;
-        if (next_idx < args[min.array_index].core_count) {
+        if (next_idx < args[min.array_index].result.count) {
             heap_push(&heap, (heap_node){
-                args[min.array_index].cores[next_idx],
+                args[min.array_index].result.cores[next_idx],
                 min.array_index,
                 next_idx
             });
@@ -616,7 +616,7 @@ uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) 
     free(heap.data);
 
     for (int i = 0; i < n_args; i++) {
-        free(args[i].cores);
+        free(args[i].result.cores);
     }
 
     *cores = result;

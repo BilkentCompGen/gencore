@@ -58,7 +58,7 @@ void read_fastqs(g_args_t *genome_args, p_args_t *program_args);
  *       input files. File-level processing is sequential, while read-level operations
  *       within each file are executed concurrently.
  */
-void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type fq_type);
+void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type_t fq_type);
 
 /**
  * @brief Reads and processes a single FASTQ or FASTQ.GZ file for a genome.
@@ -81,7 +81,7 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_inpu
  *       FASTQ files. It supports both compressed (*.fastq.gz) and uncompressed
  *       (*.fastq) input formats.
  */
-void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type fq_type);
+void read_fastq(g_args_t *genome_args, p_args_t *program_args, fastq_input_type_t fq_type);
 
 /**
  * @brief Thread entry function that processes a batch of FASTQ reads.
