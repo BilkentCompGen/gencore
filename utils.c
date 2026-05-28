@@ -580,22 +580,23 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
     }
 }
 
-uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) {
-    
-    time_t start, end;
-    time(&start);
+uint64_t merge_thread_arrays(fq_worker_t *workers, int n_args, simple_core **cores) {
 
     min_heap heap = (min_heap){malloc(sizeof(heap_node) * n_args), 0, n_args};
     uint64_t total_size = 0;
     for (int i = 0; i < n_args; ++i)
-        total_size += args[i].result.count;
+        total_size += workers[i].count;
 
     uint64_t *result = malloc(total_size * sizeof(uint64_t));
     uint64_t result_index = 0;
 
     for (int i = 0; i < n_args; ++i) {
-        if (args[i].result.count > 0) {
-            heap_push(&heap, (heap_node){args[i].result.cores[0], i, 0});
+        if (workers[i].count > 0) {
+            heap_push(&heap, (heap_node){
+                .value = workers[i].cores[0],
+                .element_index = 0,
+                .array_index = i
+            });
         }
     }
 
@@ -604,29 +605,22 @@ uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores) 
         result[result_index++] = min.value;
 
         uint64_t next_idx = min.element_index + 1;
-        if (next_idx < args[min.array_index].result.count) {
+        if (next_idx < workers[min.array_index].count) {
             heap_push(&heap, (heap_node){
-                args[min.array_index].result.cores[next_idx],
-                min.array_index,
-                next_idx
+                .value = workers[min.array_index].cores[next_idx],
+                .element_index = next_idx,
+                .array_index = min.array_index
             });
         }
     }
 
     free(heap.data);
 
-    for (int i = 0; i < n_args; i++) {
-        free(args[i].result.cores);
-    }
-
     *cores = result;
 
     if (total_size != result_index) {
         log1(ERROR, "Merged array are not consistent %ld-%ld", total_size, result_index);
     }
-
-    time(&end);
-    args->time_stats.merging += difftime(end, start);
     
     return result_index;
 }

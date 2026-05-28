@@ -25,9 +25,9 @@ fa_thread_t *init_threads(p_args_t *program_args) {
 
     fa_thread_t *threads = calloc(program_args->n_threads, sizeof(fa_thread_t));
     for (int i = 0; i < program_args->n_threads; i++) {
+        threads[i].capacity = 16;
         threads[i].seqs = calloc(threads[i].capacity, sizeof(seq_t));
         threads[i].seq_count = 0;
-        threads[i].capacity = 16;
         threads[i].lcp_level = program_args->lcp_level;
         threads[i].core_span = program_args->core_span;
         threads[i].verbose = program_args->verbose;

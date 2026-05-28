@@ -11,7 +11,7 @@ CURRENT_DIR := $(shell pwd)
 # ========================================
 
 CC         := gcc
-CFLAGS     := -O3 -Wall -Wextra -Wpedantic
+CFLAGS     := -O3 -Wall -Wextra -Wpedantic -D_GNU_SOURCE
 LDFLAGS    := -lm -pthread -lz
 
 # ========================================

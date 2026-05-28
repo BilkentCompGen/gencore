@@ -311,7 +311,7 @@ void merge_sorted_arrays(simple_core **cores, uint64_t *sizes, uint64_t file_cou
  *
  * @return The total number of merged simple_core elements.
  */
-uint64_t merge_thread_arrays(fqw_args_t *args, int n_args, simple_core **cores);
+uint64_t merge_thread_arrays(fq_worker_t *workers, int n_args, simple_core **cores);
 
 uint32_t MurmurHash3_32(const void *key, int len, uint32_t seed);
 

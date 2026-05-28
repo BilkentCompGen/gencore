@@ -1,11 +1,10 @@
-import numpy as np
-from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
-from Bio import Phylo
-from ete3 import Tree, TreeStyle
 import argparse
 import os
 
-os.environ["QT_QPA_PLATFORM"] = "offscreen"
+import numpy as np
+from Bio import Phylo
+from Bio.Phylo.TreeConstruction import DistanceTreeConstructor, DistanceMatrix
+
 
 def remove_inner_labels(tree):
     for clade in tree.find_clades():
@@ -91,14 +90,35 @@ def read_newick(filename):
     return tree
 
 def draw_tree(tree, output_file):
-    tree = Tree(tree.format("newick"), format=1, quoted_node_names=True)
+    """
+    Draw tree using ete3.
+
+    ete3 is imported only here, so users who only want Newick output
+    do not need ete3, PyQt, or Qt working in their environment.
+    """
+    os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+
+    try:
+        from ete3 import Tree, TreeStyle
+    except ImportError as e:
+        raise ImportError(
+            "Drawing requires ete3 with TreeStyle support. "
+            "Install ete3 and its Qt/PyQt dependencies, or run without --draw."
+        ) from e
+
+    newick_str = tree.format("newick")
+    ete_tree = Tree(newick_str, format=1, quoted_node_names=True)
+
     ts = TreeStyle()
     ts.show_leaf_name = True
     ts.branch_vertical_margin = 5
-    tree.render(output_file + ".png", w=1000, units="px", tree_style=ts)
-    print(f"Tree saved to {output_file}_ete.png")
-    
-def main(input_file, mode, normalize, output_file):
+
+    png_file = output_file + ".png"
+    ete_tree.render(png_file, w=1000, units="px", tree_style=ts)
+
+    print(f"Tree image saved to {png_file}")
+
+def main(input_file, mode, normalize, output_file, draw=False):
     if not input_file.endswith('.phy'):
         raise ValueError("Unsupported file format. Please provide a .phy")
     
@@ -107,13 +127,13 @@ def main(input_file, mode, normalize, output_file):
         tree = construct_nj_tree(labels, matrix)
         tree = sort_tree(tree)
         save_tree(tree, output_file+".nj")
-        draw_tree(tree, output_file+".nj")
     else: 
         labels, matrix = read_phy(input_file, normalize)
         tree = construct_upgma_tree(labels, matrix)
         tree = sort_tree(tree)
         save_tree(tree, output_file+".upgma")
-        draw_tree(tree, output_file+".upgma")
+    if draw:
+        draw_tree(tree, output_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Construct a phylogenetic tree using UPGMA and save it as an image and Newick file.")
@@ -121,17 +141,10 @@ if __name__ == "__main__":
     parser.add_argument('--nj', action='store_true')
     parser.add_argument('--upgma', action='store_true')
     parser.add_argument('--normalize', action='store_true')
+    parser.add_argument( "--draw", action="store_true", help="Render a PNG image using ete3. Requires ete3 and Qt/PyQt.")
     args = parser.parse_args()
 
     output_file_base = os.path.splitext(args.input_file)[0]
-
-    mode = "nj"
-    normalize = False
-
-    if args.normalize:
-        normalize = True
-
-    if args.upgma:
-        mode = "upgma"
+    mode = "upgma" if args.upgma else "nj"
     
-    main(args.input_file, mode, normalize, output_file_base)
+    main(args.input_file, mode, args.normalize, output_file_base)

@@ -29,6 +29,7 @@ void printFqUsage() {
     printf("\t-i [filename]   The file contains filenames of genomes.\n");
     printf("\t-l [num]        Lcp-level. [Default: %d]\n", DEFAULT_LCP_LEVEL);
     printf("\t-t [num]        Number of threads. [Default: %d]\n", DEFAULT_THREAD_NUMBER);
+    printf("\t-r [num]        Number of reader threads. [Default: %d]\n", DEFAULT_FQ_READER_NUMBER);
     printf("\t--min-cc [num]  Minimum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FQ_MIN_CC);
     printf("\t--max-cc [num]  Maximum frequency (core count) for a core. [Default: %d]\n", DEFAULT_FA_MAX_CC);
     printf("\t[--set|--vec]   Distances based or set or vector of cores. [Default: %s]\n", sct2str(DEFAULT_SIM_CALC_MODE));
@@ -169,6 +170,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
 
     // set program arguments with their default values
     program_args->n_threads = DEFAULT_THREAD_NUMBER;
+    program_args->n_readers = DEFAULT_FQ_READER_NUMBER;
     program_args->prefix = DEFAULT_PREFIX;
     program_args->n_genomes = 0;
 
@@ -198,7 +200,7 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
     char *endptr;
 
     // Parsing options
-    while ((opt = getopt_long(argc, argv, "i:l:e:t:o:p:s:v", long_options, &long_index)) != -1) {
+    while ((opt = getopt_long(argc, argv, "i:l:e:t:r:o:p:s:v", long_options, &long_index)) != -1) {
         switch (opt) {
             case 'i':
                 filename_inputs = optarg;
@@ -211,6 +213,9 @@ void parse(int argc, char **argv, g_args_t **genome_args, p_args_t *program_args
                 break;
             case 't':
                 program_args->n_threads = atoi(optarg);
+                break;
+            case 'r':
+                program_args->n_readers = atoi(optarg);
                 break;
             case 'o':
                 filename_outputs = optarg;

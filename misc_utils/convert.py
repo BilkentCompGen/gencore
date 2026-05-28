@@ -1,5 +1,9 @@
 import sys
 
+"""
+Helper function to convert Mash output file to .phy
+"""
+
 def generate_phy_matrix(input_file, output_file):
     """
     Generates a .phy file in matrix format based on the input distances.

@@ -3,11 +3,13 @@
 
 #include <stdint.h>
 #include <stdio.h>
+#include <pthread.h>
 #include <stdatomic.h>
 
 /* =============================================
  * Defaults / constants
  * ============================================= */
+
 #define DEFAULT_FA_MIN_CC               0u
 #define DEFAULT_FQ_MIN_CC               32u
 #define DEFAULT_FA_MAX_CC               UINT32_MAX
@@ -25,22 +27,26 @@
 /* =============================================
  * Historical estimation constants.
  * ============================================= */
+
 #define MAGIC_LCP_FA_CONSTANT           2.20    // the constant reduction of cores is 2.33 but to be 
                                             // safe, it is selected lower than that
-#define MAGIC_LCP_FQ_CONSTANT           3.00    // the constant reduction of cores is 1.5 but to be 
+#define MAGIC_LCP_FQ_CONSTANT           2.20    // the constant reduction of cores is 1.5 but to be 
                                             // more efficient, it is selected higher than that
 #define INITIAL_SEQUENCE_SIZE           300000000u
 
 /* =============================================
  * FASTQ batching.
  * ============================================= */
+
 #define DEFAULT_FASTQ_BATCH_SIZE        (4u * 1024u * 1024u)
 #define DEFAULT_FASTQ_QUEUE_CAPACITY    64
 #define SEPARATOR                       '$'
+#define FQ_PARALLEL_MIN_CORE_CAP        1024
 
 /* =============================================
  * Legacy worker-state constants.
  * ============================================= */
+
 #define THREAD_EXIT_SIGNAL             -2
 #define BUFFER_NOT_INITIALIZED         -1
 #define THREAD_BUSY                    0
@@ -104,6 +110,7 @@ typedef struct {
  typedef struct {
     char *prefix;
     int n_threads;
+    int n_readers;
     int n_genomes;
     int lcp_level;
     int core_span;
@@ -130,7 +137,7 @@ typedef struct {
 } g_args_t;
 
 /* =============================================
- * Helper structs
+ * Helper structs (FA)
  * ============================================= */
 
 typedef struct {
@@ -155,14 +162,81 @@ typedef struct {
     long total_seq_len;
 } fa_thread_t;
 
+/* =============================================
+ * Helper structs (FQ)
+ * ============================================= */
+
 typedef struct {
-    atomic_int *available;
-    char *buffer;
-    int buffer_len;
+    int n_readers;
+    int n_workers;
+    size_t batch_size;
+    int queue_capacity;
     int lcp_level;
-    core_result_t result;
+    uint64_t estimated_total_core_capacity;
+    int verbose;
+} fq_parallel_options_t;
+
+typedef struct {
+    simple_core *cores;
+    uint64_t count;
+    uint64_t capacity;
+    uint64_t total_core_len;
+    uint64_t total_sequence_len;
     time_stats_t time_stats;
-} fqw_args_t;
+} fq_parallel_result_t;
+
+typedef struct {
+    char *data;
+    size_t len;
+    int file_id;
+} fq_batch_t;
+
+typedef struct {
+    fq_batch_t *items;
+    int capacity;
+    int head;
+    int tail;
+    int count;
+    int closed;
+
+    pthread_mutex_t mutex;
+    pthread_cond_t not_empty;
+    pthread_cond_t not_full;
+} fq_batch_queue_t;
+
+typedef struct {
+    fq_batch_queue_t *queue;
+    int worker_id;
+    int lcp_level;
+
+    simple_core *cores;
+    uint64_t count;
+    uint64_t capacity;
+
+    uint64_t total_core_len;
+    uint64_t total_sequence_len;
+
+    time_stats_t time_stats;
+} fq_worker_t;
+
+typedef struct {
+    const char **files;
+    int n_files;
+    atomic_int next_file_id;
+
+    atomic_int active_readers;
+
+    fq_batch_queue_t *queue;
+    size_t batch_size;
+    int verbose;
+} fq_reader_pool_t;
+
+typedef struct {
+    int reader_id;
+    fq_reader_pool_t *pool;
+
+    fq_worker_t *worker;
+} fq_reader_t;
 
 /* =============================================
  * Heap
@@ -179,6 +253,5 @@ typedef struct {
     size_t size;
     size_t capacity;
 } min_heap;
-
 
 #endif
