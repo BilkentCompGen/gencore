@@ -278,6 +278,16 @@ void free_args(g_args_t * genome_args, p_args_t * program_args);
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------
 
+void heap_swap(heap_node *a, heap_node *b);
+
+void heapify_up(min_heap *heap, size_t idx);
+
+void heapify_down(min_heap *heap, size_t idx);
+
+void heap_push(min_heap *heap, heap_node node);
+
+heap_node heap_pop(min_heap *heap);
+
 /**
  * @brief Merges multiple sorted arrays using a fixed-size min-heap.
  *

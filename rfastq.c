@@ -35,6 +35,27 @@ static void fq_reader_done_producing(fq_reader_pool_t *rp) {
     }
 }
 
+static int fq_try_enter_worker(fq_reader_pool_t *rp) {
+    int readers = atomic_load(&rp->active_readers);
+
+    /* Once all readers are done, preserve draining behaviour. */
+    if (readers <= 0) {
+        atomic_fetch_add(&rp->active_workers, 1);
+        return 1;
+    }
+
+    int workers = atomic_load(&rp->active_workers);
+    int limit = readers * FQ_WORKERS_PER_READER;
+
+    while (workers < limit) {
+        if (atomic_compare_exchange_weak(&rp->active_workers, &workers, workers + 1)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 static int fq_worker_add_lps_cores(fq_worker_t *worker, struct lps *str) {
     if (!str || str->size <= 0) return 0;
 
@@ -43,11 +64,6 @@ static int fq_worker_add_lps_cores(fq_worker_t *worker, struct lps *str) {
     for (int i = 0; i < str->size; i++) {
         uint64_t core_len = (uint64_t)(str->cores[i].end - str->cores[i].start);
         worker->cores[worker->count++] = ((uint64_t)str->cores[i].label << 32) + core_len;
-        worker->total_core_len += core_len;
-    }
-
-    if (str->size) {
-        worker->total_sequence_len += (uint64_t)(str->cores[str->size - 1].end - str->cores[0].start);
     }
 
     return 0;
@@ -157,6 +173,11 @@ static void *fq_reader_thread_main(void *ptr) {
         int file_id = atomic_fetch_add(&rp->next_file_id, 1);
         if (file_id >= rp->n_files) {
             fq_reader_done_producing(rp);
+
+            if (!fq_try_enter_worker(rp)) {
+                return NULL;
+            }
+            
             pthread_setname_np(pthread_self(), "fq-rd-worker");
             return fq_worker_thread_main(reader->worker);
         }
@@ -283,33 +304,180 @@ static void *fq_reader_thread_main(void *ptr) {
     return NULL;
 }
 
-static int fq_merge_workers(fq_worker_t *workers, int n_workers, fq_parallel_result_t *out) {
+static uint64_t fq_emit_core_run(simple_core value, uint64_t freq, simple_core *result, uint64_t result_index, int apply_filter, uint32_t min_cc, uint32_t max_cc, int keep_duplicates) {
+    int passes = 1;
+
+    if (apply_filter) {
+        passes = ((uint64_t)min_cc <= freq && freq <= (uint64_t)max_cc);
+    }
+
+    if (!passes) {
+        return result_index;
+    }
+
+    if (keep_duplicates) {
+        for (uint64_t i = 0; i < freq; ++i) {
+            result[result_index++] = value;
+        }
+    } else {
+        result[result_index++] = value;
+    }
+
+    return result_index;
+}
+
+static uint64_t merge_filter_thread_arrays(fq_worker_t *workers, int n_workers, simple_core **cores, g_args_t *genome_args) {
+    if (!workers || n_workers <= 0 || !cores || !genome_args) {
+        if (cores) {
+            *cores = NULL;
+        }
+        return 0;
+    }
+
+    double filter0 = fq_seconds_now();
+
+    uint64_t total_size = 0;
+
+    for (int i = 0; i < n_workers; ++i) {
+        total_size += workers[i].count;
+    }
+
+    if (total_size == 0) {
+        *cores = NULL;
+        return 0;
+    }
+
+    min_heap heap = {
+        .data = malloc(sizeof(heap_node) * n_workers),
+        .size = 0,
+        .capacity = n_workers
+    };
+
+    if (!heap.data) {
+        *cores = NULL;
+        return 0;
+    }
+
+    const int keep_duplicates = (genome_args->sct == SIM_CALC_VECTOR);
+
+    simple_core *result;
+    if (keep_duplicates) {
+        result = (simple_core *)malloc(sizeof(simple_core) * total_size);
+    } else {
+        result = (simple_core *)malloc(sizeof(simple_core) * total_size / genome_args->min_cc);
+    }
+
+    if (!result) {
+        free(heap.data);
+        *cores = NULL;
+        return 0;
+    }
+
+    for (int i = 0; i < n_workers; ++i) {
+        if (workers[i].count > 0) {
+            heap_push(&heap, (heap_node){
+                .value = workers[i].cores[0],
+                .element_index = 0,
+                .array_index = i
+            });
+        }
+    }
+
+    uint64_t result_index = 0;
+    uint64_t freq = 0;
+    simple_core current = 0;
+    int have_current = 0;
+
+    while (heap.size > 0) {
+        heap_node min = heap_pop(&heap);
+        simple_core value = min.value;
+
+        if (!have_current) {
+            current = value;
+            freq = 1;
+            have_current = 1;
+        } else if (value == current) {
+            freq++;
+        } else {
+            result_index = fq_emit_core_run(current, freq, result, result_index, genome_args->apply_filter, genome_args->min_cc, genome_args->max_cc, keep_duplicates);
+            current = value;
+            freq = 1;
+        }
+
+        uint64_t next_idx = min.element_index + 1;
+
+        if (next_idx < workers[min.array_index].count) {
+            heap_push(&heap, (heap_node){
+                .value = workers[min.array_index].cores[next_idx],
+                .element_index = next_idx,
+                .array_index = min.array_index
+            });
+        }
+    }
+
+    if (have_current) {
+        result_index = fq_emit_core_run(current, freq, result, result_index, genome_args->apply_filter, genome_args->min_cc, genome_args->max_cc, keep_duplicates);
+    }
+
+    free(heap.data);
+
+    if (result_index == 0) {
+        free(result);
+        *cores = NULL;
+        return 0;
+    }
+
+    simple_core *shrunk = (simple_core *)realloc(result, sizeof(simple_core) * result_index);
+
+    if (shrunk) {
+        result = shrunk;
+    }
+
+    *cores = result;
+
+    uint64_t total_sequence_len = 0;
+
+    for (uint64_t i = 0; i < result_index; i++) {
+        total_sequence_len += result[i] & 0xFFFFFFFF;
+    }
+
+    genome_args->result.total_core_len = total_sequence_len;
+    genome_args->result.total_sequence_len = total_sequence_len;
+
+    double filter1 = fq_seconds_now();
+    genome_args->time_stats.filtering += filter1 - filter0;
+
+    return result_index;
+}
+
+static int fq_merge_workers(fq_worker_t *workers, int n_workers, fq_parallel_result_t *out, g_args_t *genome_args) {
+    
+    if (!workers || n_workers <= 0 || !out || !genome_args) {
+        return -1;
+    }
+
+    uint64_t raw_count = 0;
 
     for (int i = 0; i < n_workers; i++) {
-        out->count += workers[i].count;
+        raw_count += workers[i].count;
         out->capacity += workers[i].capacity;
     }
 
     // merge cores stored in thread arguments
     double merge0 = fq_seconds_now();
-    uint64_t count = merge_thread_arrays(workers, n_workers, &(out->cores));
+    uint64_t final_count = merge_filter_thread_arrays(workers, n_workers, &(out->cores), genome_args);
     double merge1 = fq_seconds_now();
 
-    out->time_stats.merging += merge0 - merge1;
+    out->time_stats.merging += merge1 - merge0;
 
-    if (count != out->count)
-        log1(ERROR, "Core count mismatch after merging.");
+    out->count = final_count;
+    out->capacity = final_count;
 
     for (int i = 0; i < n_workers; i++) {
-        out->total_core_len += workers[i].total_core_len;
-        out->total_sequence_len += workers[i].total_sequence_len;
-
         out->time_stats.running += workers[i].time_stats.running;
         out->time_stats.idle += workers[i].time_stats.idle;
         out->time_stats.lcp += workers[i].time_stats.lcp;
-        out->time_stats.merging += workers[i].time_stats.merging;
         out->time_stats.sorting += workers[i].time_stats.sorting;
-        out->time_stats.filtering += workers[i].time_stats.filtering;
     }
 
     return 0;
@@ -326,7 +494,7 @@ void fq_normalize_options(fq_parallel_options_t *dst, const fq_parallel_options_
     if (dst->lcp_level <= 0) dst->lcp_level = DEFAULT_LCP_LEVEL;
 }
 
-int fq_parallel_process_files(const char **files, int n_files, const fq_parallel_options_t *opt_in, fq_parallel_result_t *out) {
+int fq_parallel_process_files(const char **files, int n_files, const fq_parallel_options_t *opt_in, fq_parallel_result_t *out, g_args_t *genome_args) {
     if (!files || n_files <= 0 || !out) return -1;
 
     memset(out, 0, sizeof(fq_parallel_result_t));
@@ -393,6 +561,7 @@ int fq_parallel_process_files(const char **files, int n_files, const fq_parallel
     reader_pool.verbose = opt.verbose;
     atomic_init(&reader_pool.next_file_id, 0);
     atomic_init(&reader_pool.active_readers, opt.n_readers);
+    atomic_init(&reader_pool.active_workers, opt.n_workers);
 
     for (int i = 0; i < (opt.n_readers); i++) {
         readers[i].reader_id = i;
@@ -424,7 +593,7 @@ int fq_parallel_process_files(const char **files, int n_files, const fq_parallel
         if (worker_threads[i]) pthread_join(worker_threads[i], NULL);
     }
 
-    if (fq_merge_workers(workers, opt.n_workers + opt.n_readers, out) != 0) goto cleanup;
+    if (fq_merge_workers(workers, opt.n_workers + opt.n_readers, out, genome_args) != 0) goto cleanup;
 
     rc = 0;
     goto cleanup;
@@ -568,7 +737,7 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args) {
 
     fq_parallel_result_t result;
 
-    if (fq_parallel_process_files((const char **)files, file_count, &opt, &result) != 0) {
+    if (fq_parallel_process_files((const char **)files, file_count, &opt, &result, genome_args) != 0) {
         log1(ERROR, "Parallel directory FASTQ processing failed for %s.", dir_name);
 
         for (int i = 0; i < file_count; i++) free(files[i]);
@@ -578,15 +747,15 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args) {
 
     genome_args->result.cores = result.cores;
     genome_args->result.count = result.count;
-    genome_args->result.total_core_len = result.total_core_len;
-    genome_args->result.total_sequence_len = result.total_sequence_len;
 
-    genome_args->time_stats.running += result.time_stats.running;
-    genome_args->time_stats.idle += result.time_stats.idle;
-    genome_args->time_stats.lcp += result.time_stats.lcp;
-    genome_args->time_stats.merging += result.time_stats.merging;
-    genome_args->time_stats.sorting += result.time_stats.sorting;
-    genome_args->time_stats.filtering += result.time_stats.filtering;
+    genome_args->time_stats.running = result.time_stats.running;
+    genome_args->time_stats.idle = result.time_stats.idle;
+    genome_args->time_stats.lcp = result.time_stats.lcp;
+    genome_args->time_stats.merging = result.time_stats.merging;
+    genome_args->time_stats.sorting = result.time_stats.sorting;
+
+    // // filter based on fequency
+    // genSign(genome_args);
 
     if (program_args->verbose) {
         log1(INFO,
@@ -628,7 +797,7 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args) {
 
     fq_parallel_result_t result;
 
-    if (fq_parallel_process_files(files, 1, &opt, &result) != 0) {
+    if (fq_parallel_process_files(files, 1, &opt, &result, genome_args) != 0) {
         log3(ERROR, &console_mutex_rfastq,
              "Parallel FASTQ processing failed for %s", genome_args->inFileName);
         return;
@@ -636,15 +805,12 @@ void read_fastq(g_args_t *genome_args, p_args_t *program_args) {
 
     genome_args->result.cores = result.cores;
     genome_args->result.count = result.count;
-    genome_args->result.total_core_len += result.total_core_len;
-    genome_args->result.total_sequence_len += result.total_sequence_len;
 
-    genome_args->time_stats.running += result.time_stats.running;
-    genome_args->time_stats.idle += result.time_stats.idle;
-    genome_args->time_stats.lcp += result.time_stats.lcp;
-    genome_args->time_stats.merging += result.time_stats.merging;
-    genome_args->time_stats.sorting += result.time_stats.sorting;
-    genome_args->time_stats.filtering += result.time_stats.filtering;
+    genome_args->time_stats.running = result.time_stats.running;
+    genome_args->time_stats.idle = result.time_stats.idle;
+    genome_args->time_stats.lcp = result.time_stats.lcp;
+    genome_args->time_stats.merging = result.time_stats.merging;
+    genome_args->time_stats.sorting = result.time_stats.sorting;
 
     if (genome_args->verbose) {
         log1(INFO,

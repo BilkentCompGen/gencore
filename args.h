@@ -42,6 +42,7 @@
 #define DEFAULT_FASTQ_QUEUE_CAPACITY    64
 #define SEPARATOR                       '$'
 #define FQ_PARALLEL_MIN_CORE_CAP        1024
+#define FQ_WORKERS_PER_READER           4
 
 /* =============================================
  * Legacy worker-state constants.
@@ -180,8 +181,6 @@ typedef struct {
     simple_core *cores;
     uint64_t count;
     uint64_t capacity;
-    uint64_t total_core_len;
-    uint64_t total_sequence_len;
     time_stats_t time_stats;
 } fq_parallel_result_t;
 
@@ -225,6 +224,7 @@ typedef struct {
     atomic_int next_file_id;
 
     atomic_int active_readers;
+    atomic_int active_workers;
 
     fq_batch_queue_t *queue;
     size_t batch_size;

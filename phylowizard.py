@@ -89,7 +89,7 @@ def read_newick(filename):
     tree = Phylo.read(filename, 'newick')
     return tree
 
-def draw_tree(tree, output_file):
+def draw_tree(tree_str, output_file):
     """
     Draw tree using ete3.
 
@@ -106,8 +106,7 @@ def draw_tree(tree, output_file):
             "Install ete3 and its Qt/PyQt dependencies, or run without --draw."
         ) from e
 
-    newick_str = tree.format("newick")
-    ete_tree = Tree(newick_str, format=1, quoted_node_names=True)
+    ete_tree = Tree(tree_str, format=1, quoted_node_names=True)
 
     ts = TreeStyle()
     ts.show_leaf_name = True
@@ -119,9 +118,21 @@ def draw_tree(tree, output_file):
     print(f"Tree image saved to {png_file}")
 
 def main(input_file, mode, normalize, output_file, draw=False):
-    if not input_file.endswith('.phy'):
-        raise ValueError("Unsupported file format. Please provide a .phy")
-    
+    if not input_file.endswith(".phy") and not input_file.endswith(".newick"):
+        raise ValueError("Unsupported file format. Please provide a .phy or .newick")
+
+    if input_file.endswith(".newick"):
+        with open(input_file, "r") as f:
+            tree = f.read().strip()
+
+        if not tree:
+            raise ValueError(f"Empty Newick file: {input_file}")
+
+        if draw:
+            draw_tree(tree, output_file)
+
+        return
+        
     if mode == "nj":
         labels, matrix = read_phy(input_file, normalize)
         tree = construct_nj_tree(labels, matrix)
@@ -132,8 +143,10 @@ def main(input_file, mode, normalize, output_file, draw=False):
         tree = construct_upgma_tree(labels, matrix)
         tree = sort_tree(tree)
         save_tree(tree, output_file+".upgma")
+
     if draw:
-        draw_tree(tree, output_file)
+        tree_str = tree.format("newick")
+        draw_tree(tree_str, output_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Construct a phylogenetic tree using UPGMA and save it as an image and Newick file.")
@@ -147,4 +160,4 @@ if __name__ == "__main__":
     output_file_base = os.path.splitext(args.input_file)[0]
     mode = "upgma" if args.upgma else "nj"
     
-    main(args.input_file, mode, args.normalize, output_file_base)
+    main(args.input_file, mode, args.normalize, output_file_base, args.draw)

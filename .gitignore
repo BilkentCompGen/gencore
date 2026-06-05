@@ -3,3 +3,5 @@ gencore
 .vscode/
 
 results*
+
+misc_utils/gencore-config.sh

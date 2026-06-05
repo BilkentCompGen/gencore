@@ -277,12 +277,14 @@ void genSign(void *args) {
     index++;
 
     if (index) {
-        simple_core *new_cores = (simple_core *)realloc(cores, sizeof(simple_core) * index);
+        simple_core *new_cores = (simple_core *)malloc(sizeof(simple_core) * index);
         if (new_cores) {
+            memcpy(new_cores, cores, sizeof(simple_core) * index);
             genome_args->result.cores = new_cores;
-        } else {
             free(cores);
+        } else {
             genome_args->result.cores = NULL;
+            free(cores);
             index = 0;
         }
     } else {
@@ -587,7 +589,7 @@ uint64_t merge_thread_arrays(fq_worker_t *workers, int n_args, simple_core **cor
     for (int i = 0; i < n_args; ++i)
         total_size += workers[i].count;
 
-    uint64_t *result = malloc(total_size * sizeof(uint64_t));
+    simple_core *result = malloc(total_size * sizeof(simple_core));
     uint64_t result_index = 0;
 
     for (int i = 0; i < n_args; ++i) {
@@ -604,7 +606,7 @@ uint64_t merge_thread_arrays(fq_worker_t *workers, int n_args, simple_core **cor
         heap_node min = heap_pop(&heap);
         result[result_index++] = min.value;
 
-        uint64_t next_idx = min.element_index + 1;
+        simple_core next_idx = min.element_index + 1;
         if (next_idx < workers[min.array_index].count) {
             heap_push(&heap, (heap_node){
                 .value = workers[min.array_index].cores[next_idx],

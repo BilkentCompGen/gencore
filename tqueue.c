@@ -110,7 +110,7 @@ int fq_worker_reserve(fq_worker_t *worker, uint64_t needed_extra) {
 
     uint64_t new_cap = worker->capacity ? worker->capacity : FQ_PARALLEL_MIN_CORE_CAP;
     while (new_cap < worker->count + needed_extra) {
-        uint64_t grown = new_cap + new_cap / 2 + 1024;
+        uint64_t grown = new_cap + new_cap / 8 + 1024;
         if (grown <= new_cap) return -1;
         new_cap = grown;
     }
