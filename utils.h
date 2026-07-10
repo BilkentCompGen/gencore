@@ -3,6 +3,7 @@
 
 #include "args.h"
 #include "lps.h"
+#include "ksort.h"
 #include <stdio.h>
 #include <sys/stat.h>
 #include <time.h>
@@ -166,6 +167,10 @@ int compare_simple_core(const void *a, const void *b);
  *        representing the arguments specific to each genome which is needed for cores.
  */
 void genSign(void *args);
+
+void sort_u64_radix(uint64_t *a, size_t n);
+
+int build_filtered_result(const g_args_t *src, g_args_t *dst, uint32_t min_cc, uint32_t max_cc);
 
 // ---------------------------------------------------------------------------------
 // ---------------------------------------------------------------------------------

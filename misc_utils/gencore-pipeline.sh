@@ -28,18 +28,24 @@
 RUN_GENCORE_TUMOR="true"
 RUN_MASH_TUMOR="true"
 RUN_SOURMASH_TUMOR="true"
+RUN_DASHING2_TUMOR="true"
 RUN_ANI="true"
 RUN_GENCORE_PRIM="true"
 RUN_MASH_PRIM="true"
 RUN_SOURMASH_PRIM="true"
+RUN_DASHING2_PRIM="true"
 RUN_GENCORE_FQ="true"
+RUN_GENCORE_FQ_CC="true"
 
 GENCORE="gencore"
 PHYLOWIZARD="phylowizard.py"
-PLOT="misc_utils/plot-mut-vs-dist.py"
+PLOT_ANI="misc_utils/plot-mut-vs-dist.py"
 MASH="mash"
 CONVERT="misc_utils/convert.py"
 SOURMASH="sourmash"
+DASHING2="dashing2"
+CMP_TREE="misc_utils/cmp_trees.py"
+PLOT_DIST="misc_utils/plot_tree_disruption.py"
 
 PRIMATES_FQ_DIR=.
 
@@ -144,6 +150,34 @@ if [ "$RUN_SOURMASH_TUMOR" = "true" ]; then
     cd ..
 fi
 
+# Dashing2 Tumor
+if [ "$RUN_DASHING2_TUMOR" = "true" ]; then
+
+    cd fa-tumor-human
+
+    rm -f dashing2-tumor-fa-out.txt
+
+    for s in 1000 5000 50000 500000 5000000; do
+
+        /bin/time -v ${DASHING2} sketch \
+            -F filenames.txt \
+            -p 4 \
+            -S${s} \
+            --cmpout "tumor.dashing2.s${s}.phy" >> dashing2-tumor-fa-out.txt 2>&1
+
+        python3 ${CONVERT} --dashing2 tumor.dashing2.s${s}.phy tumor.dashing2.s${s}.norm.phy
+
+        if [ -f "tumor.dashing2.s${s}.norm.phy" ]; then
+            python3 ${PHYLOWIZARD} tumor.dashing2.s${s}.norm.phy --normalize >> dashing2-tumor-fa-out.txt 2>&1
+        else
+            echo "tumor.dashing2.s${s}.norm.phy not found!"
+        fi
+
+    done
+
+    cd ..
+fi
+
 # GenCore-ANI tumor
 if [ "$RUN_ANI" = "true" ]; then
 
@@ -152,8 +186,8 @@ if [ "$RUN_ANI" = "true" ]; then
 
     if [ -f "${MUTATION_COUNT_PHY}" ]; then
         for l in 4 5 6 7 8 9; do
-            python3 ${PLOT} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.jaccard.lvl${l}.phy --label "GenCore (${l})" -o count-gencore-j-${l}.pdf
-            python3 ${PLOT} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.evol.lvl${l}.phy --label "GenCore (${l})" -o count-gencore-p-${l}.pdf
+            python3 ${PLOT_ANI} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.jaccard.lvl${l}.phy --label "GenCore (${l})" -o count-gencore-j-${l}.pdf
+            python3 ${PLOT_ANI} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.evol.lvl${l}.phy --label "GenCore (${l})" -o count-gencore-p-${l}.pdf
         done
     fi
 
@@ -215,6 +249,24 @@ if [ "$RUN_SOURMASH_PRIM" = "true" ]; then
     cd ..
 fi
 
+# Dashing2 primates
+if [ "$RUN_DASHING2_PRIM" = "true" ]; then
+
+    cd fa-primates
+
+    rm -f dashing2-primates-fa-out.txt
+
+    /bin/time -v ${DASHING2} sketch \
+        -F filenames.txt \
+        -p 6 \
+        --cmpout "primates.dashing2.default.phy" >> dashing2-primates-fa-out.txt 2>&1
+
+    python3 ${CONVERT} --dashing2 primates.dashing2.default.phy primates.dashing2.default.norm.phy
+    python3 ${PHYLOWIZARD} primates.dashing2.default.norm.phy >> dashing2-primates-fa-out.txt 2>&1
+
+    cd ..
+fi
+
 # Gencore primates fq
 if [ "$RUN_GENCORE_FQ" = "true" ]; then
 
@@ -231,9 +283,8 @@ if [ "$RUN_GENCORE_FQ" = "true" ]; then
             -s shortnames.txt \
             -l "$l" \
             -t 32 \
-            -r 6 \
+            -r 11 \
             -p primates.fq \
-            --min-cc 32 \
             -v >> gencore-primates-fq-out.txt 2>&1
 
         python3 ${PHYLOWIZARD} primates.fq.set.evol.lvl${l}.phy >> gencore-primates-fq-out.txt 2>&1
@@ -245,6 +296,58 @@ if [ "$RUN_GENCORE_FQ" = "true" ]; then
     mv gencore-primates-fq-out.txt $WORK_DIR/fq-primates
 
     cd -
+
+    cd ..
+fi
+
+# Gencore primates fq
+if [ "$RUN_GENCORE_FQ_CC" = "true" ]; then
+
+    mkdir -p fq-primates-cc
+
+    cd $PRIMATES_FQ_DIR
+
+    for l in 4 5 6; do
+        /bin/time -v ${GENCORE} fq \
+            -i filenames.txt \
+            -s shortnames.txt \
+            -o binnames${l}.txt \
+            -l "$l" \
+            -t 32 \
+            -r 6 \
+            -p primates.fq \
+            -v >> gencore-primates-fq-out.txt 2>&1
+    done
+
+    for l in 4 5 6; do
+        /bin/time -v ${GENCORE} ld \
+            -i binnames${l}.txt \
+            -s shortnames.txt \
+            -t 6 \
+            -r 6 \
+            -l "$l" \
+            -p primates.fq -v
+        
+        rm -f distances.lvl${l}.txt
+
+        for cc in {0..200..4}; do
+            python3 ${PHYLOWIZARD} primates.fq.cc${cc}.set.evol.lvl${l}.phy >> gencore-primates-fq-out.txt 2>&1
+            python3 ${CMP_TREE} ${PRIMATES_GROUND} primates.fq.cc${cc}.set.evol.lvl${l}.nj.newick >> distances.lvl${l}.txt
+            echo "" >> distances.lvl${l}.txt
+        done
+
+        python  distances.lvl${l}.txt -o tree_disruption.lvl${l}.pdf
+    done
+
+    mv *.phy $WORK_DIR/fq-primates-cc
+    mv *.newick $WORK_DIR/fq-primates-cc
+    mv gencore-primates-fq-out.txt $WORK_DIR/fq-primates-cc
+    mv distances.lvl*.txt $WORK_DIR/fq-primates-cc
+    mv tree_disruption.lvl*.pdf $WORK_DIR/fq-primates-cc
+    
+    cd -
+
+    cd ..
 fi
 
 cd $WORK_DIR

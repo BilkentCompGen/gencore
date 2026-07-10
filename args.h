@@ -38,8 +38,8 @@
  * FASTQ batching.
  * ============================================= */
 
-#define DEFAULT_FASTQ_BATCH_SIZE        (4u * 1024u * 1024u)
-#define DEFAULT_FASTQ_QUEUE_CAPACITY    64
+#define DEFAULT_FASTQ_BATCH_SIZE        (1u * 1024u * 1024u)
+#define DEFAULT_FASTQ_QUEUE_CAPACITY    128
 #define SEPARATOR                       '$'
 #define FQ_PARALLEL_MIN_CORE_CAP        1024
 #define FQ_WORKERS_PER_READER           4

@@ -34,4 +34,6 @@ void read_lcpts(g_args_t *genome_args, p_args_t *program_args);
  */
 void read_lcpt(void *arg);
 
+void calcDistancesFrequencySweep(g_args_t *genome_args, p_args_t *program_args);
+
 #endif

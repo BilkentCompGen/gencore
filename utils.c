@@ -1,5 +1,10 @@
 #include "utils.h"
 
+#define u64_key(x) (x)
+
+KRADIX_SORT_INIT(u64, uint64_t, u64_key, 8)
+
+
 const char* mode2str(program_mode_t m) {
     switch(m) {
         case PROGRAM_MODE_FA: return "FA";
@@ -219,6 +224,10 @@ void quicksort(simple_core *array, int low, int high) {
     }
 }
 
+void sort_u64_radix(uint64_t *a, size_t n) {
+    radix_sort_u64(a, a + n);
+}
+
 void genSign(void *args) {
 
     g_args_t *genome_args = (g_args_t *)args;
@@ -230,7 +239,7 @@ void genSign(void *args) {
     time(&start);
 
     // quicksort(cores, 0, len - 1, print_ver);
-    qsort(cores, len, sizeof(simple_core), compare_simple_core);
+    sort_u64_radix(cores, len);
 
     time(&breakpoint);
     genome_args->time_stats.sorting = difftime(breakpoint, start);
@@ -296,6 +305,88 @@ void genSign(void *args) {
 
     time(&end);
     genome_args->time_stats.filtering = difftime(end, breakpoint);
+}
+
+int build_filtered_result(const g_args_t *src, g_args_t *dst, uint32_t min_cc, uint32_t max_cc) {
+    const simple_core *cores = src->result.cores;
+    uint64_t len = src->result.count;
+
+    dst->result.cores = NULL;
+    dst->result.count = 0;
+    dst->min_cc = min_cc;
+    dst->max_cc = max_cc;
+
+    time_t start, end;
+    time(&start);
+
+    uint64_t out_count = 0;
+    uint64_t i = 0;
+
+    while (i < len) {
+        uint64_t freq = 1;
+
+        while (i + freq < len && cores[i] == cores[i + freq]) {
+            freq++;
+        }
+
+        if ((uint64_t)min_cc <= freq && freq <= (uint64_t)max_cc) {
+            if (src->sct == SIM_CALC_SET) {
+                out_count += 1;
+            } else {
+                out_count += freq;
+            }
+        }
+
+        i += freq;
+    }
+
+    if (out_count == 0) {
+        time(&end);
+        dst->time_stats.filtering = difftime(end, start);
+        return 0;
+    }
+
+    dst->result.cores = malloc(sizeof(simple_core) * out_count);
+
+    if (dst->result.cores == NULL) {
+        log1(ERROR, "Memory allocation failed while filtering");
+        dst->result.count = 0;
+        return -1;
+    }
+
+    uint64_t index = 0;
+    i = 0;
+    uint64_t total_sequence_len = 0;
+
+    while (i < len) {
+        uint64_t freq = 1;
+
+        while (i + freq < len && cores[i] == cores[i + freq]) {
+            freq++;
+        }
+
+        if ((uint64_t)min_cc <= freq && freq <= (uint64_t)max_cc) {
+            if (src->sct == SIM_CALC_SET) {
+                dst->result.cores[index++] = cores[i];
+                total_sequence_len += cores[i] & 0xFFFFFFFF;
+            } else {
+                memcpy(&dst->result.cores[index], &cores[i], sizeof(simple_core) * freq);
+                index += freq;
+                total_sequence_len += (cores[i] & 0xFFFFFFFF) * freq;
+            }
+        }
+
+        i += freq;
+    }
+
+    dst->result.count = index;
+    dst->result.total_core_len = total_sequence_len;
+    dst->result.total_sequence_len = total_sequence_len;
+
+    time(&end);
+    dst->time_stats.filtering = difftime(end, start);
+
+    return 0;
 }
 
 // ---------------------------------------------------------------------------------

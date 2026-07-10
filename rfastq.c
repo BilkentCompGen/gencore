@@ -155,7 +155,7 @@ static void *fq_worker_thread_main(void *ptr) {
 
     double sort0 = fq_seconds_now();
     if (worker->cores && worker->count > 1) {
-        qsort(worker->cores, worker->count, sizeof(simple_core), compare_simple_core);
+        sort_u64_radix(worker->cores, worker->count);
     }
     double sort1 = fq_seconds_now();
 
@@ -345,6 +345,29 @@ static uint64_t merge_filter_thread_arrays(fq_worker_t *workers, int n_workers, 
     if (total_size == 0) {
         *cores = NULL;
         return 0;
+    }
+
+    if (genome_args->write_lcpt) {
+        FILE *file = fopen(genome_args->outFileName, "wb");
+
+        if (file != NULL) {
+            if (fwrite(&total_size, sizeof(uint64_t), 1, file) == 1) {
+                for (int i = 0; i < n_workers; ++i) {
+                    if (workers[i].count) {
+                        size_t written = fwrite(workers[i].cores, sizeof(simple_core), workers[i].count, file);
+                        if (written != workers[i].count) {
+                            perror("Failed to write cores");
+                            fclose(file);
+                        }
+                    }
+                }
+            } else {
+                perror("Failed to write total_size");
+            }
+            fclose(file);
+        } else {
+            perror("Failed to open file");
+        }
     }
 
     min_heap heap = {
@@ -729,7 +752,7 @@ void process_dir_fastq(g_args_t *genome_args, p_args_t *program_args) {
         .n_readers = program_args->n_readers,
         .n_workers = program_args->n_threads - program_args->n_readers,
         .batch_size = 4 * 1024 * 1024,
-        .queue_capacity = (program_args->n_threads - program_args->n_readers) * 4,
+        .queue_capacity = (program_args->n_threads - program_args->n_readers) * 12,
         .lcp_level = program_args->lcp_level,
         .estimated_total_core_capacity = estimated_total_core_size,
         .verbose = program_args->verbose
