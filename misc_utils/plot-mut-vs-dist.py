@@ -61,7 +61,7 @@ def main():
 
     parser.add_argument(
         "--label",
-        default="GenCore",
+        default="Corallel",
         help="Plot title"
     )
 

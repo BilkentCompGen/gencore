@@ -1,7 +1,7 @@
 *.o
-gencore
+corallel
 .vscode/
 
 results*
 
-misc_utils/gencore-config.sh
+misc_utils/corallel-config.sh

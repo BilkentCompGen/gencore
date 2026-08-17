@@ -25,19 +25,19 @@
 #           Siamang
 #
 
-RUN_GENCORE_TUMOR="true"
+RUN_CORALLEL_TUMOR="true"
 RUN_MASH_TUMOR="true"
 RUN_SOURMASH_TUMOR="true"
 RUN_DASHING2_TUMOR="true"
 RUN_ANI="true"
-RUN_GENCORE_PRIM="true"
+RUN_CORALLEL_PRIM="true"
 RUN_MASH_PRIM="true"
 RUN_SOURMASH_PRIM="true"
 RUN_DASHING2_PRIM="true"
-RUN_GENCORE_FQ="true"
-RUN_GENCORE_FQ_CC="true"
+RUN_CORALLEL_FQ="true"
+RUN_CORALLEL_FQ_CC="true"
 
-GENCORE="gencore"
+CORALLEL="corallel"
 PHYLOWIZARD="phylowizard.py"
 PLOT_ANI="misc_utils/plot-mut-vs-dist.py"
 MASH="mash"
@@ -53,7 +53,7 @@ WORK_DIR=.
 
 MUTATION_COUNT_PHY="mutation.count.phy"
 
-CONFIG_FILE="gencore-config.sh"
+CONFIG_FILE="corallel-config.sh"
 
 if [[ -n "$CONFIG_FILE" && -f "$CONFIG_FILE" ]]; then
     echo "Loading config from $CONFIG_FILE"
@@ -62,24 +62,24 @@ fi
 
 cd $WORK_DIR
 
-# GenCore Tumor
-if [ "$RUN_GENCORE_TUMOR" = "true" ]; then
+# Corallel Tumor
+if [ "$RUN_CORALLEL_TUMOR" = "true" ]; then
 
     cd fa-tumor-human
 
-    rm -f gencore-tumor-fa-out.txt
+    rm -f corallel-tumor-fa-out.txt
 
     for l in 4 5 6 7 8 9; do
 
-        /bin/time -v ${GENCORE} fa \
+        /bin/time -v ${CORALLEL} fa \
             -i filenames.txt \
             -s shortnames.txt \
             -t 4 \
             -l "$l" \
             -p tumor \
-            -v >> gencore-tumor-fa-out.txt 2>&1
+            -v >> corallel-tumor-fa-out.txt 2>&1
 
-        python3 ${PHYLOWIZARD} tumor.set.evol.lvl${l}.phy --normalize >> gencore-tumor-fa-out.txt 2>&1
+        python3 ${PHYLOWIZARD} tumor.set.evol.lvl${l}.phy --normalize >> corallel-tumor-fa-out.txt 2>&1
 
     done
 
@@ -178,7 +178,7 @@ if [ "$RUN_DASHING2_TUMOR" = "true" ]; then
     cd ..
 fi
 
-# GenCore-ANI tumor
+# Corallel-ANI tumor
 if [ "$RUN_ANI" = "true" ]; then
 
     mkdir -p mut-vs-ani-plots
@@ -186,30 +186,30 @@ if [ "$RUN_ANI" = "true" ]; then
 
     if [ -f "${MUTATION_COUNT_PHY}" ]; then
         for l in 4 5 6 7 8 9; do
-            python3 ${PLOT_ANI} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.jaccard.lvl${l}.phy --label "GenCore (${l})" -o count-gencore-j-${l}.pdf
-            python3 ${PLOT_ANI} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.evol.lvl${l}.phy --label "GenCore (${l})" -o count-gencore-p-${l}.pdf
+            python3 ${PLOT_ANI} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.jaccard.lvl${l}.phy --label "Corallel (${l})" -o count-corallel-j-${l}.pdf
+            python3 ${PLOT_ANI} ${MUTATION_COUNT_PHY} ../fa-tumor-human/tumor.set.evol.lvl${l}.phy --label "Corallel (${l})" -o count-corallel-p-${l}.pdf
         done
     fi
 
     cd ..
 fi
 
-# GenCore primates
-if [ "$RUN_GENCORE_PRIM" = "true" ]; then
+# Corallel primates
+if [ "$RUN_CORALLEL_PRIM" = "true" ]; then
 
     cd fa-primates
 
-    rm -f gencore-primates-fa-out.txt
+    rm -f corallel-primates-fa-out.txt
 
-    # GenCore
+    # Corallel
     for l in 4 5 6 7; do
-        /bin/time -v ${GENCORE} fa \
+        /bin/time -v ${CORALLEL} fa \
             -i filenames.txt \
             -s shortnames.txt \
             -t 7 \
             -l "$l" \
             -p primates \
-            -v >> gencore-primates-fa-out.txt 2>&1;
+            -v >> corallel-primates-fa-out.txt 2>&1;
 
         python3 ${PHYLOWIZARD} primates.set.evol.lvl${l}.phy;
     done
@@ -267,48 +267,48 @@ if [ "$RUN_DASHING2_PRIM" = "true" ]; then
     cd ..
 fi
 
-# Gencore primates fq
-if [ "$RUN_GENCORE_FQ" = "true" ]; then
+# Corallel primates fq
+if [ "$RUN_CORALLEL_FQ" = "true" ]; then
 
     mkdir -p fq-primates
 
     cd $PRIMATES_FQ_DIR
 
-    rm -f gencore-primates-fq-out.txt
+    rm -f corallel-primates-fq-out.txt
 
     for l in 4 5 6; do
 
-        /bin/time -v ${GENCORE} fq \
+        /bin/time -v ${CORALLEL} fq \
             -i filenames.txt \
             -s shortnames.txt \
             -l "$l" \
             -t 32 \
             -r 11 \
             -p primates.fq \
-            -v >> gencore-primates-fq-out.txt 2>&1
+            -v >> corallel-primates-fq-out.txt 2>&1
 
-        python3 ${PHYLOWIZARD} primates.fq.set.evol.lvl${l}.phy >> gencore-primates-fq-out.txt 2>&1
+        python3 ${PHYLOWIZARD} primates.fq.set.evol.lvl${l}.phy >> corallel-primates-fq-out.txt 2>&1
 
     done
 
     mv *.phy $WORK_DIR/fq-primates
     mv *.newick $WORK_DIR/fq-primates
-    mv gencore-primates-fq-out.txt $WORK_DIR/fq-primates
+    mv corallel-primates-fq-out.txt $WORK_DIR/fq-primates
 
     cd -
 
     cd ..
 fi
 
-# Gencore primates fq
-if [ "$RUN_GENCORE_FQ_CC" = "true" ]; then
+# Corallel primates fq
+if [ "$RUN_CORALLEL_FQ_CC" = "true" ]; then
 
     mkdir -p fq-primates-cc
 
     cd $PRIMATES_FQ_DIR
 
     for l in 4 5 6; do
-        /bin/time -v ${GENCORE} fq \
+        /bin/time -v ${CORALLEL} fq \
             -i filenames.txt \
             -s shortnames.txt \
             -o binnames${l}.txt \
@@ -316,11 +316,11 @@ if [ "$RUN_GENCORE_FQ_CC" = "true" ]; then
             -t 32 \
             -r 6 \
             -p primates.fq \
-            -v >> gencore-primates-fq-out.txt 2>&1
+            -v >> corallel-primates-fq-out.txt 2>&1
     done
 
     for l in 4 5 6; do
-        /bin/time -v ${GENCORE} ld \
+        /bin/time -v ${CORALLEL} ld \
             -i binnames${l}.txt \
             -s shortnames.txt \
             -t 6 \
@@ -331,7 +331,7 @@ if [ "$RUN_GENCORE_FQ_CC" = "true" ]; then
         rm -f distances.lvl${l}.txt
 
         for cc in {0..200..4}; do
-            python3 ${PHYLOWIZARD} primates.fq.cc${cc}.set.evol.lvl${l}.phy >> gencore-primates-fq-out.txt 2>&1
+            python3 ${PHYLOWIZARD} primates.fq.cc${cc}.set.evol.lvl${l}.phy >> corallel-primates-fq-out.txt 2>&1
             python3 ${CMP_TREE} ${PRIMATES_GROUND} primates.fq.cc${cc}.set.evol.lvl${l}.nj.newick >> distances.lvl${l}.txt
             echo "" >> distances.lvl${l}.txt
         done
@@ -341,7 +341,7 @@ if [ "$RUN_GENCORE_FQ_CC" = "true" ]; then
 
     mv *.phy $WORK_DIR/fq-primates-cc
     mv *.newick $WORK_DIR/fq-primates-cc
-    mv gencore-primates-fq-out.txt $WORK_DIR/fq-primates-cc
+    mv corallel-primates-fq-out.txt $WORK_DIR/fq-primates-cc
     mv distances.lvl*.txt $WORK_DIR/fq-primates-cc
     mv tree_disruption.lvl*.pdf $WORK_DIR/fq-primates-cc
     

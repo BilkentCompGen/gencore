@@ -21,7 +21,7 @@
 #define DEFAULT_FQ_READER_NUMBER        1
 #define DEFAULT_VERBOSE                 0
 #define DEFAULT_WRITE_LCP_CORES         0
-#define DEFAULT_PREFIX                  "gc"
+#define DEFAULT_PREFIX                  "cl"
 #define DEFAULT_COMPRESSION_RATIO       4
 
 /* =============================================

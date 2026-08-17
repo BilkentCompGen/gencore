@@ -1,9 +1,9 @@
-# GENCORE
+# Corallel
 
 ## Overview
 
-**gencore** is a bioinformatics tool designed for the comparison of genomic sequences. 
-Unlike traditional genomic comparison methods that rely on hashing techniques, **gencore** utilizes [*Locally Consistent Parsing (LCP)*](https://github.com/BilkentCompGen/lcptools), a novel approach that processes strings iteratively. 
+**Corrallel** is a bioinformatics tool designed for the comparison of genomic sequences. 
+Unlike traditional genomic comparison methods that rely on hashing techniques, **Corallel** utilizes [*Locally Consistent Parsing (LCP)*](https://github.com/BilkentCompGen/lcptools), a novel approach that processes strings iteratively. 
 This technique allows for the paritioning genomic data into small modules, called cores, leading to highly accurate comparisons when evaluating genetic distances and constructing phylogenetic trees.
 
 ## Features
@@ -38,8 +38,8 @@ Open your terminal and execute the following commands to clone the repository an
 
 ```bash
 # clone the repository
-git clone --depth 1 --recursive https://github.com/BilkentCompGen/gencore.git
-cd gencore
+git clone --depth 1 --recursive https://github.com/BilkentCompGen/corallel.git
+cd corallel
 
 # install dependencies and build the project
 make install
@@ -50,7 +50,7 @@ make install
 The general usage format is:
 
 ```bash
-./gencore [PROGRAM] [OPTIONS]
+./corallel [PROGRAM] [OPTIONS]
 ```
 
 ### [PROGRAM]
@@ -66,7 +66,7 @@ For detailed options for each program, see the sections below.
 ### `fa`: Processing Assembled Genomes
 
 ```bash
-./gencore fa [OPTIONS]
+./corallel fa [OPTIONS]
 ```
 
 #### Options:
@@ -89,7 +89,7 @@ For detailed options for each program, see the sections below.
 
 - **`-o [filename]`**: Output file to store cores.
 
-- **`-p [prefix]`**: Prefix for the result files (default: gc).
+- **`-p [prefix]`**: Prefix for the result files (default: cl).
 
 - **`-s [filename]`**: File containing short names for input files (one name per line). Default is the first 10 characters of input filenames.
 
@@ -103,7 +103,7 @@ For detailed options for each program, see the sections below.
 ### `fq`: Processing Genome Reads
 
 ```bash
-./gencore fq [OPTIONS]
+./corallel fq [OPTIONS]
 ```
 
 #### Options:
@@ -126,7 +126,7 @@ For detailed options for each program, see the sections below.
 
 - **`-o [filename]`**: Output file to store cores.
 
-- **`-p [prefix]`**: Prefix for the result files (default: gc).
+- **`-p [prefix]`**: Prefix for the result files (default: cl).
 
 - **`-s [filename]`**: File containing short names for input files (one name per line). Default is the first 10 characters of input filenames.
 
@@ -139,7 +139,7 @@ For detailed options for each program, see the sections below.
 To process assembled genomes listed in `genome_files.txt` with default settings:
 
 ```bash
-./gencore fa -i genome_files.txt -o output.cores -p results_prefix
+./corallel fa -i genome_files.txt -o output.cores -p results_prefix
 ```
 
 - `genome_files.txt`: Contains the genome filenames, one per line.
@@ -149,16 +149,14 @@ To process assembled genomes listed in `genome_files.txt` with default settings:
 If you want to use short names for the genomes from `short_names.txt`:
 
 ```bash
-./gencore fa -i genome_files.txt -o output.cores -p results_prefix -s short_names.txt
+./corallel fa -i genome_files.txt -o output.cores -p results_prefix -s short_names.txt
 ```
 
 For processing genome reads with specific core count limits:
 
 ```bash
-./gencore fq -i reads_files.txt --min-cc 5 --max-cc 100 -o reads.cores -p reads_prefix
+./corallel fq -i reads_files.txt --min-cc 5 --max-cc 100 -o reads.cores -p reads_prefix
 ```
-
-**NOTE**: You may visit the [repository](https://github.com/akmami/gencore-test) to see a simple pipeline test.
 
 ---
 
@@ -174,20 +172,20 @@ For processing genome reads with specific core count limits:
   - The same line index in all input files corresponds to the same genome or read argument. For example:
     - Line 1 of `genome_files.txt` corresponds to Line 1 of `short_names.txt`.
 
-The example files are provided under [example](https://github.com/BilkentCompGen/gencore/tree/main/example) folder.
+The example files are provided under [example](https://github.com/BilkentCompGen/corallel/tree/main/example) folder.
 
 ---
 
 ## Program Outputs
 
-The **gencore** tool generates several output files containing distance matrices calculated from the genomic cores processed. 
+The **Corallel** tool generates several output files containing distance matrices calculated from the genomic cores processed. 
 The outputs are saved in the specified prefix format, and the following files will be created based on the provided command-line arguments:
 
 ### Output Files
 
 1) **Dice Distance Matrix**:
 
-  - Filename: `gc.set.dice.lvl5.phy`
+  - Filename: `cl.set.dice.lvl5.phy`
 
   - Formula: $\text{Dice}(A,B) = 1 - \frac{2\times|A\cap B|}{|A|+|B|}$
 
@@ -195,7 +193,7 @@ The outputs are saved in the specified prefix format, and the following files wi
 
 2) **Jaccard Distance Matrix**:
 
-  - Filename: `gc.set.jaccard.lvl5.phy`
+  - Filename: `cl.set.jaccard.lvl5.phy`
 
   - Formula: $\text{Jaccard}(A,B) = 1 - \frac{|A \cap B|}{|A \cup B|}$
   
@@ -203,7 +201,7 @@ The outputs are saved in the specified prefix format, and the following files wi
 
 3) **Evolutionary Distance Matrix**:
 
-  - Filename: `gc.set.evol.lvl5.phy`
+  - Filename: `cl.set.evol.lvl5.phy`
 
   - Formula: $D = - \dfrac{1}{k} \ln ( \dfrac{2 J}{1 + J} )$
   - 
@@ -216,12 +214,12 @@ The outputs are saved in the specified prefix format, and the following files wi
 ## Additional Command for Phylogenetic Tree Construction:
 
 ```bash
-python3 phylowizard.py gc.set.dice.lvl5.phy
+python3 phylowizard.py cl.set.dice.lvl5.phy
 ```
 
-The script outputs a Newick format tree files, `gc.set.dice.lvl5.upgma.newick` and `gc.set.dice.lvl5.nj.newick`, which contains the tree structures, constructed with upgma and neighbor joining algorithm, in a textual format that can be used for further analysis or visualization.
+The script outputs a Newick format tree files, `cl.set.dice.lvl5.upgma.newick` and `cl.set.dice.lvl5.nj.newick`, which contains the tree structures, constructed with upgma and neighbor joining algorithm, in a textual format that can be used for further analysis or visualization.
 
 
 ## License
 
-**gencore** is released under the BSD 3-Clause License, which allows for redistribution and use in source and binary forms, with or without modification, under certain conditions. For more detailed terms, please refer to the [license file](https://github.com/BilkentCompGen/gencore/blob/main/LICENSE).
+**Corallel** is released under the BSD 3-Clause License, which allows for redistribution and use in source and binary forms, with or without modification, under certain conditions. For more detailed terms, please refer to the [license file](https://github.com/BilkentCompGen/corallel/blob/main/LICENSE).

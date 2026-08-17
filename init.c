@@ -1,7 +1,7 @@
 #include "init.h"
 
 void printUsage() {
-    printf("Usage: ./gencore [PROGRAM] [OPTIONS]\n");
+    printf("Usage: ./corallel [PROGRAM] [OPTIONS]\n");
     printf("[PROGRAM]: \n");
     printf("\tfa:   Processing assembled genomes.\n");
     printf("\tfq:   Processing genomes' reads.\n");
@@ -9,7 +9,7 @@ void printUsage() {
 }
 
 void printFaUsage() {
-    printf("Usage: ./gencore fa [OPTIONS]\n");
+    printf("Usage: ./corallel fa [OPTIONS]\n");
     printf("Options:\n");
     printf("\t-i [filename]   The file contains filenames of genomes.\n");
     printf("\t-l [num]        Lcp-level. [Default: %d]\n", DEFAULT_LCP_LEVEL);
@@ -24,7 +24,7 @@ void printFaUsage() {
 }
 
 void printFqUsage() {
-    printf("Usage: ./gencore fq [OPTIONS]\n");
+    printf("Usage: ./corallel fq [OPTIONS]\n");
     printf("Options:\n");
     printf("\t-i [filename]   The file contains filenames of genomes.\n");
     printf("\t-l [num]        Lcp-level. [Default: %d]\n", DEFAULT_LCP_LEVEL);

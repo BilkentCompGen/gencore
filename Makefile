@@ -1,7 +1,7 @@
 # ========================================
 #  Project Configuration
 # ========================================
-TARGET 		:= gencore
+TARGET 		:= corallel
 SRCS 		:= $(wildcard *.c)
 OBJS 		:= $(SRCS:.c=.o)
 CURRENT_DIR := $(shell pwd)
